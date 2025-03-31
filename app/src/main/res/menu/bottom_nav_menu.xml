@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navExemplar"
+        android:title="Exemplar"
+        android:icon="@drawable/star_24px"/>
+    <item
+        android:id="@+id/navYou"
+        android:title="You"
+        android:icon="@drawable/person_24px"/>
+    <item
+        android:id="@+id/navCompare"
+        android:title="Compare"
+        android:icon="@drawable/compare_24px"/>
+    <item
+        android:id="@+id/navSettings"
+        android:title="Settings"
+        android:icon="@drawable/settings_24px"/>
+</menu>

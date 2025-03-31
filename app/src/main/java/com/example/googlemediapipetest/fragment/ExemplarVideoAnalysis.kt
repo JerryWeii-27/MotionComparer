@@ -1,0 +1,276 @@
+package com.example.googlemediapipetest.fragment
+
+import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.opengl.GLSurfaceView
+import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
+import android.view.LayoutInflater
+import androidx.fragment.app.Fragment
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.Toast
+import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import com.example.googlemediapipetest.HumanModel
+import com.example.googlemediapipetest.gles.GLRenderer
+import com.example.googlemediapipetest.R
+import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
+import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
+import com.luck.picture.lib.basic.PictureSelector
+import com.luck.picture.lib.config.SelectMimeType
+import com.luck.picture.lib.entity.LocalMedia
+import com.luck.picture.lib.interfaces.OnResultCallbackListener
+import java.util.ArrayList
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+
+class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis)
+{
+    private var poseLandmarker : PoseLandmarker? = null
+    lateinit var buttonPickVideo : Button
+    lateinit var pvPlayerView : PlayerView
+    lateinit var player : ExoPlayer
+    lateinit var pbDetectionProgress : ProgressBar
+
+    var sampleIntervalMs : Long = 500;
+
+    private lateinit var backgroundExecutor : ScheduledExecutorService
+
+    override fun onCreateView(
+        inflater : LayoutInflater,
+        container : ViewGroup?,
+        savedInstanceState : Bundle?
+    ) : View?
+    {
+        return inflater.inflate(R.layout.fragment_exemplar_video_analysis, container, false)
+    }
+
+    override fun onViewCreated(view : View, savedInstanceState : Bundle?)
+    {
+        super.onViewCreated(view, savedInstanceState)
+        ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+        buttonPickVideo = view.findViewById(R.id.buttonExemplarPickVideo)
+
+        pvPlayerView = view.findViewById(R.id.pvExemplarPlayerView)
+        player = ExoPlayer.Builder(requireContext()).build()
+        pvPlayerView.player = player
+
+        buttonPickVideo.setOnClickListener() {
+            openVideoPicker()
+        }
+
+        pbDetectionProgress = view.findViewById(R.id.pbExemplarDetectionProgress)
+        pbDetectionProgress.setProgress(0, true)
+
+        val modelName = "pose_landmarker_lite.task"
+
+        try
+        {
+            val baseOptionBuilder = BaseOptions.builder()
+//            baseOptionBuilder.setDelegate(Delegate.GPU)
+            baseOptionBuilder.setModelAssetPath(modelName)
+
+            val baseOptions = baseOptionBuilder.build()
+
+            val optionsBuilder =
+                PoseLandmarker.PoseLandmarkerOptions.builder().setBaseOptions(baseOptions)
+                    .setMinPoseDetectionConfidence(0.5f).setMinTrackingConfidence(0.5f)
+                    .setMinPosePresenceConfidence(0.5f).setRunningMode(RunningMode.VIDEO)
+                    .setNumPoses(1)
+
+            val options = optionsBuilder.build()
+            poseLandmarker = PoseLandmarker.createFromOptions(requireContext(), options)
+        } catch (e : RuntimeException)
+        {
+            Log.e("GPUDelegation", "GPU delegation error.")
+        }
+
+        // OpenGL
+
+        val glSurfaceView = view.findViewById<GLSurfaceView>(R.id.glSurfaceView)
+        glSurfaceView.setEGLContextClientVersion(2)
+
+        val newGLRenderer : GLRenderer = GLRenderer(requireContext())
+
+        glSurfaceView.setRenderer(newGLRenderer)
+
+        @SuppressLint("ClickableViewAccessibility")
+        glSurfaceView.setOnTouchListener() { _, event -> newGLRenderer.onTouchEvent(event) }
+    }
+
+    private fun openVideoPicker()
+    {
+        PictureSelector.create(this).openSystemGallery(SelectMimeType.ofVideo())
+            .forSystemResult(object : OnResultCallbackListener<LocalMedia>
+            {
+                override fun onResult(result : java.util.ArrayList<LocalMedia>)
+                {
+                    handleVideoSelection(result)
+                }
+
+                override fun onCancel()
+                {
+                    Toast.makeText(requireContext(), "Selection canceled.", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            })
+    }
+
+    private fun handleVideoSelection(result : ArrayList<LocalMedia>)
+    {
+        if (result.isNotEmpty())
+        {
+            val videoPath = result[0].availablePath.toString().toUri()
+//            Toast.makeText(this@MainActivity, "Selection made: $videoPath", Toast.LENGTH_LONG)
+//                .show()
+
+            val mediaItem = MediaItem.fromUri(videoPath)
+
+            player.setMediaItem(mediaItem)
+            player.prepare()
+            player.play()
+
+            backgroundExecutor = Executors.newSingleThreadScheduledExecutor()
+            backgroundExecutor.execute {
+                runDetectOnVideo(videoPath)
+                    ?.let { resultBundle ->
+                        activity?.runOnUiThread {
+                            Toast.makeText(
+                                requireContext(),
+                                "Running UI thread code.",
+                                Toast.LENGTH_SHORT
+                            )
+                                .show()
+                            Log.i("MPDetectionProgress", "Running UI thread code.")
+                            processResultBundle(resultBundle)
+                        }
+                    }
+            }
+        }
+        else
+        {
+            Toast.makeText(requireContext(), "No video selected.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Run on background thread.
+    private fun runDetectOnVideo(videoUri : Uri) : ResultBundle?
+    {
+        val startTime = SystemClock.uptimeMillis()
+        Log.i("MPDetectionProgress", "runDetectOnVideo at $startTime")
+
+        val retriever = MediaMetadataRetriever()
+        retriever.setDataSource(requireContext(), videoUri)
+        val videoLengthMs =
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong()
+
+        val firstFrame = retriever.getFrameAtTime(0)
+        val width = firstFrame?.width
+        val height = firstFrame?.height
+
+        if (videoLengthMs == null || width == null || height == null)
+        {
+            return null
+        }
+
+        val numberOfFramesToDetect = videoLengthMs / sampleIntervalMs
+        val resultList = mutableListOf<PoseLandmarkerResult>()
+
+        var currentProgressPercent : Int = 0
+
+        for (i in 0..numberOfFramesToDetect)
+        {
+            val timeStampMs = i * sampleIntervalMs
+            Log.i("MPDetectionProgress", "Detecting $timeStampMs out of $videoLengthMs.")
+
+            retriever.getFrameAtTime(timeStampMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST)
+                ?.let { frame ->
+
+                    // Convert the video frame to ARGB_8888 which is required by the MediaPipe
+                    val argb8888Frame = if (frame.config == Bitmap.Config.ARGB_8888) frame
+                    else frame.copy(Bitmap.Config.ARGB_8888, false)
+
+                    // Convert the input Bitmap object to an MPImage object to run inference
+                    val mpImage = BitmapImageBuilder(argb8888Frame).build()
+
+                    poseLandmarker?.detectForVideo(mpImage, timeStampMs)?.let { detectionResult ->
+                        resultList.add(detectionResult)
+                    } ?: {
+                        Log.e("MPDetectionProgress", "Frame could not be detected.")
+                    }
+                } ?: {
+                Log.e("MPDetectionProgress", "Frame could not be retrieved.")
+            }
+
+            val newProgressPercent = (i * 100.0 / numberOfFramesToDetect).toInt()
+            if (newProgressPercent >= currentProgressPercent + 5)
+            {
+                activity?.runOnUiThread {
+                    pbDetectionProgress.setProgress(currentProgressPercent, true)
+                }
+                currentProgressPercent = newProgressPercent
+            }
+        }
+
+        val endTime = SystemClock.uptimeMillis()
+        val timeTaken = "%.1f".format((endTime - startTime) / 1000.0)
+        Log.i(
+            "MPDetectionProgress",
+            "Detection finished at $endTime. Time Taken: $timeTaken seconds."
+        )
+
+        return ResultBundle(resultList, sampleIntervalMs, height, width)
+    }
+
+    private fun processResultBundle(resultBundle : ResultBundle)
+    {
+        val worldLandmarksList = resultBundle.resultsList[0].worldLandmarks()
+
+        Log.i("LandmarksList", worldLandmarksList.toString())
+
+        val joints = FloatArray(33 * 3)
+
+        var index : Int = 0
+        for (sublist in worldLandmarksList)
+        {
+            for (landmark in sublist)
+            {
+                val x = landmark.x()
+                val y = landmark.y()
+                val z = landmark.z()
+
+                joints[index++] = x
+                joints[index++] = y
+                joints[index++] = z
+
+                Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
+            }
+        }
+    }
+
+    data class ResultBundle(
+        val resultsList : List<PoseLandmarkerResult>,
+        val inferenceTime : Long,
+        val inputImageHeight : Int,
+        val inputImageWidth : Int,
+    )
+
+}
