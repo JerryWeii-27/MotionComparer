@@ -24,6 +24,7 @@ import androidx.media3.ui.PlayerView
 import com.example.googlemediapipetest.HumanModel
 import com.example.googlemediapipetest.gles.GLRenderer
 import com.example.googlemediapipetest.R
+import com.example.googlemediapipetest.Vector3
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -44,6 +45,8 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     lateinit var pvPlayerView : PlayerView
     lateinit var player : ExoPlayer
     lateinit var pbDetectionProgress : ProgressBar
+    lateinit var glRenderer : GLRenderer
+    lateinit var glSurfaceView : GLSurfaceView
 
     var sampleIntervalMs : Long = 500;
 
@@ -80,7 +83,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         pbDetectionProgress = view.findViewById(R.id.pbExemplarDetectionProgress)
         pbDetectionProgress.setProgress(0, true)
 
-        val modelName = "pose_landmarker_lite.task"
+        val modelName = "pose_landmarker_heavy.task"
 
         try
         {
@@ -105,15 +108,15 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
         // OpenGL
 
-        val glSurfaceView = view.findViewById<GLSurfaceView>(R.id.glSurfaceView)
+        glSurfaceView = view.findViewById<GLSurfaceView>(R.id.glSurfaceView)
         glSurfaceView.setEGLContextClientVersion(2)
 
-        val newGLRenderer : GLRenderer = GLRenderer(requireContext())
+        glRenderer = GLRenderer(requireContext())
 
-        glSurfaceView.setRenderer(newGLRenderer)
+        glSurfaceView.setRenderer(glRenderer)
 
         @SuppressLint("ClickableViewAccessibility")
-        glSurfaceView.setOnTouchListener() { _, event -> newGLRenderer.onTouchEvent(event) }
+        glSurfaceView.setOnTouchListener() { _, event -> glRenderer.onTouchEvent(event) }
     }
 
     private fun openVideoPicker()
@@ -150,19 +153,17 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
             backgroundExecutor = Executors.newSingleThreadScheduledExecutor()
             backgroundExecutor.execute {
-                runDetectOnVideo(videoPath)
-                    ?.let { resultBundle ->
-                        activity?.runOnUiThread {
-                            Toast.makeText(
-                                requireContext(),
-                                "Running UI thread code.",
-                                Toast.LENGTH_SHORT
-                            )
-                                .show()
-                            Log.i("MPDetectionProgress", "Running UI thread code.")
-                            processResultBundle(resultBundle)
-                        }
+                runDetectOnVideo(videoPath)?.let { resultBundle ->
+                    activity?.runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            "Running UI thread code.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        Log.i("MPDetectionProgress", "Running UI thread code.")
+                        glSurfaceView.queueEvent { processResultBundle(resultBundle) }
                     }
+                }
             }
         }
         else
@@ -242,28 +243,45 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
     private fun processResultBundle(resultBundle : ResultBundle)
     {
-        val worldLandmarksList = resultBundle.resultsList[0].worldLandmarks()
+        Log.d("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
+        // Go through every frame in result bundle.
+        // For each frame:
+        // - updateJoints(frame)
+        // - Data of that frame saved to a mutableList
+        // - List added to floatArray
+        // -
+        glRenderer.humanModel.totalFrames = resultBundle.resultsList.size
+        val s = resultBundle.resultsList.size
+        Log.i("OpenGL", "processResultBundle: $s")
 
-        Log.i("LandmarksList", worldLandmarksList.toString())
-
-        val joints = FloatArray(33 * 3)
-
-        var index : Int = 0
-        for (sublist in worldLandmarksList)
+        for (i in 0 until resultBundle.resultsList.size)
         {
-            for (landmark in sublist)
+            val worldLandmarksList = resultBundle.resultsList[i].worldLandmarks()
+
+            Log.i("LandmarksList", worldLandmarksList.toString())
+
+            val jointsVec3Arr = Array(33) { Vector3() }
+
+            var index : Int = 0
+            for (sublist in worldLandmarksList)
             {
-                val x = landmark.x()
-                val y = landmark.y()
-                val z = landmark.z()
+                for (landmark in sublist)
+                {
+                    val x = landmark.x()
+                    val y = -landmark.y()
+                    val z = landmark.z()
 
-                joints[index++] = x
-                joints[index++] = y
-                joints[index++] = z
+                    jointsVec3Arr[index++] = Vector3(x, y, z)
 
-                Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
+//                    Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
+                }
             }
+
+            glRenderer.humanModel.updateJointsForSingleFrame(i, jointsVec3Arr)
         }
+
+        glRenderer.humanModel.bindVBO()
+        glRenderer.humanModel.allFramesAdded = true
     }
 
     data class ResultBundle(
@@ -272,5 +290,4 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         val inputImageHeight : Int,
         val inputImageWidth : Int,
     )
-
 }

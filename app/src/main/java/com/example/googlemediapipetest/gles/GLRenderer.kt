@@ -4,6 +4,7 @@ import android.content.Context
 import android.opengl.GLES32
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import android.util.Log
 import android.view.MotionEvent
 import com.example.googlemediapipetest.HumanModel
 import com.example.googlemediapipetest.R
@@ -20,15 +21,15 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 {
     var mvpMatrix = FloatArray(16)
 
-    // Objects
+    // Objects.
     lateinit var floorGrid : GLGrid
     lateinit var triangle : GLTriangles
+    lateinit var humanModel : HumanModel
 
     // Window info.
     var windowWidth : Float = 1.0f
     var windowHeight : Float = 1.0f
     var aspect = windowWidth / windowHeight
-
 
     // Camera info.
     val zNear = 0.1f
@@ -76,25 +77,67 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         config : EGLConfig?
     )
     {
+        Log.d("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
         GLES32.glClearColor(0.2f, 0.2f, 0.3f, 1.0f)
         GLES32.glEnable(GLES32.GL_DEPTH_TEST)
 
         setCamLocation(horAngle, vertAngle, radius)
 
         val triangleCoords = floatArrayOf(
-            0.0f, 0.0f, 0.0f,
-            1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 0.0f,
-            -1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, -1.0f
+            // Bottom face (y=0)
+            0f, 0f, 0f,
+            1f, 0f, 0f,
+            0f, 0f, 1f,
+            1f, 0f, 1f,
+            0f, 0f, 1f,
+            1f, 0f, 0f,
+
+            // Front face (z=0)
+            0f, 1f, 0f,
+            0f, 0f, 0f,
+            1f, 0f, 0f,
+            0f, 1f, 0f,
+            1f, 0f, 0f,
+            1f, 1f, 0f,
+
+            // Left face (x=0)
+            0f, 1f, 0f,
+            0f, 0f, 0f,
+            0f, 0f, 1f,
+            0f, 1f, 0f,
+            0f, 0f, 1f,
+            0f, 1f, 1f,
+
+            // Right face (x=1)
+            1f, 1f, 0f,
+            1f, 0f, 0f,
+            1f, 0f, 1f,
+            1f, 1f, 0f,
+            1f, 0f, 1f,
+            1f, 1f, 1f,
+
+            // Back face (z=1)
+            0f, 1f, 1f,
+            0f, 0f, 1f,
+            1f, 0f, 1f,
+            0f, 1f, 1f,
+            1f, 0f, 1f,
+            1f, 1f, 1f,
+
+            // Top face (y=1) - completed
+            0f, 1f, 0f,
+            1f, 1f, 0f,
+            1f, 1f, 1f,
+            0f, 1f, 0f,
+            1f, 1f, 1f,
+            0f, 1f, 1f
         )
         triangle =
             GLTriangles(this, R.raw.simple_vertex_shader, R.raw.red_fragment_shader, triangleCoords)
+
         floorGrid = GLGrid(this, 10.0f, 0.5f)
 
-        var humanModel = HumanModel(this)
-        humanModel.testComputeBuffer()
+        humanModel = HumanModel(this)
     }
 
     override fun onSurfaceChanged(
@@ -131,7 +174,12 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 
 //        drawTriangle()
         floorGrid.drawObject()
-        triangle.drawObject()
+//        triangle.drawObject()
+
+        if (humanModel.allFramesAdded)
+        {
+            humanModel.drawObjectAtFrame(1)
+        }
     }
 
     fun updateDeltaTime()

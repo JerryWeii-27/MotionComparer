@@ -48,6 +48,7 @@ class GLGrid(
     {
         try
         {
+//            Log.i("OpenGL", "Drawing GLGrid.")
             GLES32.glUseProgram(program)
             val positionHandle = GLES32.glGetAttribLocation(program, "vPosition")
             val mvpMatrixHandle = GLES32.glGetUniformLocation(program, "uMVPMatrix")

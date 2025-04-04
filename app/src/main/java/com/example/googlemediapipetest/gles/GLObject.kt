@@ -40,6 +40,10 @@ open class GLObject(
     open fun drawObject()
     {
         TODO("Implement drawObject().")
-//        GLES32.glUseProgram(program)
+    }
+
+    open fun drawObjectAtFrame(frame : Int)
+    {
+        TODO("Implement drawObjectAtFrame().")
     }
 }

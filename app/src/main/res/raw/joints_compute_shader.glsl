@@ -24,26 +24,3 @@ void main()
     testArr[currentLandmark] += currentLandmark;
 }
 
-// MakeBox(landmarkA, landmarkB, width)
-// normal of the box =
-
-// Torso1: 11 24 12
-// Torso2: 11 24 23
-
-// Right upper arm: 12 14
-// Right lower arm: 14 16
-// Right hand: 16 18 20
-
-// Left upper arm: 11 13
-// Left lower arm: 13 15
-// Left hand: 15 17 19
-
-// Right upper leg: 24 26
-// Right lower leg: 26 28
-// Right foot: 28 30 32
-
-// Left upper leg: 23 25
-// Left lower leg: 25 27
-// Left foot: 27 29 31
-
-// Face: 0
