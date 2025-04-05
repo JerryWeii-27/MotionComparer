@@ -11,6 +11,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 class HumanModel(renderer : GLRenderer) : GLObject(
     renderer,
@@ -37,30 +38,18 @@ class HumanModel(renderer : GLRenderer) : GLObject(
 
     public fun bindVBO()
     {
-        try
-        {
-            GLES32.glGenBuffers(1, vboId, 0)
-            GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
+        GLES32.glGenBuffers(1, vboId, 0)
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
 
-            // Allocate GPU buffer (size = one frame of vertices).
-            val frameSizeBytes = vertexCount * 3 * 4 // (x,y,z) × 4 bytes per float.
-            GLES32.glBufferData(
-                GLES32.GL_ARRAY_BUFFER,
-                frameSizeBytes,
-                null, // Allocate space but don't upload data yet.
-                GLES32.GL_DYNAMIC_DRAW
-            )
-            GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, 0)
-
-            val glError = GLES32.glGetError()
-            if (glError != GLES32.GL_NO_ERROR)
-            {
-                Log.e("OpenGL", "bindVBO: $glError")
-            }
-        } catch (e : RuntimeException)
-        {
-            Log.e("OpenGL", "bindVBO: Failed. $e")
-        }
+        // Allocate GPU buffer (size = one frame of vertices).
+        val frameSizeBytes = vertexCount * 3 * 4 // (x,y,z) × 4 bytes per float.
+        GLES32.glBufferData(
+            GLES32.GL_ARRAY_BUFFER,
+            frameSizeBytes,
+            null, // Allocate space but don't upload data yet.
+            GLES32.GL_DYNAMIC_DRAW
+        )
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, 0)
     }
 
     public fun updateJointsForSingleFrame(frame : Int, newLandmarksPos : Array<Vector3>)
@@ -91,25 +80,11 @@ class HumanModel(renderer : GLRenderer) : GLObject(
             0
         )
 
-        val normalHandle = GLES32.glGetAttribLocation(program, "vNormal")
-        GLES32.glEnableVertexAttribArray(normalHandle)
-        GLES32.glVertexAttribPointer(
-            normalHandle,
-            3,
-            GLES32.GL_FLOAT,
-            false,
-            0,
-            0
-        )
-
         val mvpMatrixHandle = GLES32.glGetUniformLocation(program, "uMVPMatrix")
         GLES32.glUniformMatrix4fv(mvpMatrixHandle, 1, false, renderer.mvpMatrix, 0)
         GLES32.glDrawArrays(GLES32.GL_TRIANGLES, 0, vertexCount)
 
-
-
         GLES32.glDisableVertexAttribArray(positionHandle)
-        GLES32.glDisableVertexAttribArray(normalHandle)
         GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, 0)
     }
 
@@ -117,35 +92,28 @@ class HumanModel(renderer : GLRenderer) : GLObject(
     {
         require(frameInAnimationData in 0 until totalFrames)
 
-        try
-        {
+        // Calculate offset in packedAnimationData.
+        val frameOffset = frameInAnimationData * vertexCount * 3
 
-            // Calculate offset in packedAnimationData.
-            val frameOffset = frameInAnimationData * vertexCount * 3
+        // Bind VBO.
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
 
-            // Bind VBO.
-            GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
+        // Copy only the current frame's data to GPU.
+        val buffer = ByteBuffer
+            .allocateDirect(vertexCount * 3 * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+            .apply {
+                put(packedAnimationData, frameOffset, vertexCount * 3)
+                position(0)
+            }
 
-            // Copy only the current frame's data to GPU.
-            val buffer = ByteBuffer
-                .allocateDirect(vertexCount * 3 * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .apply {
-                    put(packedAnimationData, frameOffset, vertexCount * 3)
-                    position(0)
-                }
-
-            GLES32.glBufferSubData(
-                GLES32.GL_ARRAY_BUFFER,
-                0,
-                vertexCount * 3 * 4,
-                buffer
-            )
-        } catch (e : RuntimeException)
-        {
-            Log.e("OpenGL", "updateVBO: $e")
-        }
+        GLES32.glBufferSubData(
+            GLES32.GL_ARRAY_BUFFER,
+            0,
+            vertexCount * 3 * 4,
+            buffer
+        )
     }
 
     private fun calcMesh(frame : Int)
@@ -156,7 +124,6 @@ class HumanModel(renderer : GLRenderer) : GLObject(
             throw RuntimeException("Draw human object: Landmarks not updated.")
             return
         }
-
 
         // MakeBox(landmarkA, landmarkB, width)
         // normal of the box =
@@ -354,5 +321,15 @@ class HumanModel(renderer : GLRenderer) : GLObject(
             Log.e("OpenGL", "flattenToAnimationData: $offset")
         }
 
+    }
+
+    fun randomColor() : FloatArray
+    {
+        return floatArrayOf(
+            Random.nextFloat(), // R
+            Random.nextFloat(), // G
+            Random.nextFloat(), // B
+            1.0f                // A
+        )
     }
 }

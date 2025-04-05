@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.MotionEvent
 import com.example.googlemediapipetest.HumanModel
 import com.example.googlemediapipetest.R
+import com.example.googlemediapipetest.fragment.ExemplarVideoAnalysis
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.PI
@@ -25,6 +26,9 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
     lateinit var floorGrid : GLGrid
     lateinit var triangle : GLTriangles
     lateinit var humanModel : HumanModel
+    var currentFrame = 0
+    var totalDeltaTimeFromLastFrameMS = 0
+    var sampleInterval = 0;
 
     // Window info.
     var windowWidth : Float = 1.0f
@@ -84,13 +88,13 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         setCamLocation(horAngle, vertAngle, radius)
 
         val triangleCoords = floatArrayOf(
-            // Bottom face (y=0)
-            0f, 0f, 0f,
-            1f, 0f, 0f,
-            0f, 0f, 1f,
-            1f, 0f, 1f,
-            0f, 0f, 1f,
-            1f, 0f, 0f,
+//            // Bottom face (y=0)
+//            0f, 0f, 0f,
+//            1f, 0f, 0f,
+//            0f, 0f, 1f,
+//            1f, 0f, 1f,
+//            0f, 0f, 1f,
+//            1f, 0f, 0f,
 
             // Front face (z=0)
             0f, 1f, 0f,
@@ -100,13 +104,13 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
             1f, 0f, 0f,
             1f, 1f, 0f,
 
-            // Left face (x=0)
-            0f, 1f, 0f,
-            0f, 0f, 0f,
-            0f, 0f, 1f,
-            0f, 1f, 0f,
-            0f, 0f, 1f,
-            0f, 1f, 1f,
+//            // Left face (x=0)
+//            0f, 1f, 0f,
+//            0f, 0f, 0f,
+//            0f, 0f, 1f,
+//            0f, 1f, 0f,
+//            0f, 0f, 1f,
+//            0f, 1f, 1f,
 
             // Right face (x=1)
             1f, 1f, 0f,
@@ -116,24 +120,24 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
             1f, 0f, 1f,
             1f, 1f, 1f,
 
-            // Back face (z=1)
-            0f, 1f, 1f,
-            0f, 0f, 1f,
-            1f, 0f, 1f,
-            0f, 1f, 1f,
-            1f, 0f, 1f,
-            1f, 1f, 1f,
+//            // Back face (z=1)
+//            0f, 1f, 1f,
+//            0f, 0f, 1f,
+//            1f, 0f, 1f,
+//            0f, 1f, 1f,
+//            1f, 0f, 1f,
+//            1f, 1f, 1f,
 
-            // Top face (y=1) - completed
-            0f, 1f, 0f,
-            1f, 1f, 0f,
-            1f, 1f, 1f,
-            0f, 1f, 0f,
-            1f, 1f, 1f,
-            0f, 1f, 1f
+//            // Top face (y=1)
+//            0f, 1f, 0f,
+//            1f, 1f, 0f,
+//            1f, 1f, 1f,
+//            0f, 1f, 0f,
+//            1f, 1f, 1f,
+//            0f, 1f, 1f
         )
         triangle =
-            GLTriangles(this, R.raw.simple_vertex_shader, R.raw.red_fragment_shader, triangleCoords)
+            GLTriangles(this, R.raw.colored_vertex_shader, R.raw.colored_fragment_shader, triangleCoords)
 
         floorGrid = GLGrid(this, 10.0f, 0.5f)
 
@@ -172,13 +176,19 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         setCamLocation(horAngle, vertAngle, radius)
 //        setCamLocation(horAngle + 0.1f * PI.toFloat() * deltaTime, vertAngle, radius)
 
-//        drawTriangle()
         floorGrid.drawObject()
-//        triangle.drawObject()
+        triangle.drawObject()
 
         if (humanModel.allFramesAdded)
         {
-            humanModel.drawObjectAtFrame(1)
+            totalDeltaTimeFromLastFrameMS += (deltaTime * 1000f).toInt()
+
+            currentFrame += totalDeltaTimeFromLastFrameMS / sampleInterval
+            currentFrame %= humanModel.totalFrames
+            totalDeltaTimeFromLastFrameMS %= sampleInterval
+
+            humanModel.drawObjectAtFrame(currentFrame)
+            Log.i("OpenGL", "onDrawFrame: $currentFrame")
         }
     }
 

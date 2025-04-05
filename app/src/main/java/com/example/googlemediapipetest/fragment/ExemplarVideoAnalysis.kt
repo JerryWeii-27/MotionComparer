@@ -48,7 +48,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     lateinit var glRenderer : GLRenderer
     lateinit var glSurfaceView : GLSurfaceView
 
-    var sampleIntervalMs : Long = 500;
+    public var sampleIntervalMs : Long = 100;
 
     private lateinit var backgroundExecutor : ScheduledExecutorService
 
@@ -112,6 +112,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         glSurfaceView.setEGLContextClientVersion(2)
 
         glRenderer = GLRenderer(requireContext())
+        glRenderer.sampleInterval = sampleIntervalMs.toInt()
 
         glSurfaceView.setRenderer(glRenderer)
 
@@ -243,7 +244,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
     private fun processResultBundle(resultBundle : ResultBundle)
     {
-        Log.d("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
+        Log.i("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
         // Go through every frame in result bundle.
         // For each frame:
         // - updateJoints(frame)

@@ -63,14 +63,17 @@ class GLGrid(
             {
                 Log.e("OpenGL", "Could not find uniform uMVPMatrix")
             }
+
+            GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[0])
             GLES32.glEnableVertexAttribArray(positionHandle)
+
             GLES32.glVertexAttribPointer(
                 positionHandle,
                 3,
                 GLES32.GL_FLOAT,
                 false,
                 0,
-                vertexBuffer
+                0
             )
 
             GLES32.glUniformMatrix4fv(mvpMatrixHandle, 1, false, renderer.mvpMatrix, 0)

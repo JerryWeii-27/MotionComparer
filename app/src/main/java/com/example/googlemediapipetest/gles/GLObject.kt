@@ -1,5 +1,6 @@
 package com.example.googlemediapipetest.gles
 
+import android.opengl.GLES32
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -13,10 +14,19 @@ open class GLObject(
 {
     private lateinit var verticesFloatArray : FloatArray
     lateinit var vertexBuffer : FloatBuffer
+    private lateinit var colorFloatArray : FloatArray
+    lateinit var colorBuffer : FloatBuffer
+
+    val buffers = IntArray(2)
 
     var numOfVertices : Int? = null;
 
     var program = GLHelper.createProgram(vertexShaderResID, fragmentShaderResID)
+
+    init
+    {
+        GLES32.glGenBuffers(buffers.size, buffers, 0)
+    }
 
     public fun setVertices(newVertices : FloatArray)
     {
@@ -35,6 +45,36 @@ open class GLObject(
             }
 
         numOfVertices = verticesFloatArray.size / 3
+
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[0])
+        GLES32.glBufferData(
+            GLES32.GL_ARRAY_BUFFER,
+            vertexBuffer.capacity() * 4,
+            vertexBuffer,
+            GLES32.GL_STATIC_DRAW
+        )
+    }
+
+    public fun setVertexColor(newVertexColor : FloatArray)
+    {
+        colorFloatArray = newVertexColor
+
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[1])
+        colorBuffer = ByteBuffer
+            .allocateDirect(colorFloatArray.size * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+            .apply {
+                put(newVertexColor)
+                position(0)
+            }
+
+        GLES32.glBufferData(
+            GLES32.GL_ARRAY_BUFFER,
+            colorBuffer.capacity() * 4,
+            colorBuffer,
+            GLES32.GL_STATIC_DRAW
+        )
     }
 
     open fun drawObject()
