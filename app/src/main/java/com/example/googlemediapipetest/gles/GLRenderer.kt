@@ -55,6 +55,8 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
     val upZ = 0f
 
     var radius : Float = 5.0f
+    var minRadius : Float = 0.1f
+    var maxRadius : Float = 10f
     var horAngle : Float = PI.toFloat() / 4.0f
     var vertAngle : Float = PI.toFloat() / 4.0f
 
@@ -63,6 +65,8 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
     // Touch info.
     private var lastX = 0.0f
     private var lastY = 0.0f
+    private var initialPinchDistance = 0f
+    private var isPinching = false
 
     public var sensitivity = 0.01f;
 
@@ -88,53 +92,53 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         setCamLocation(horAngle, vertAngle, radius)
 
         val triangleCoords = floatArrayOf(
-//            // Bottom face (y=0)
-//            0f, 0f, 0f,
-//            1f, 0f, 0f,
-//            0f, 0f, 1f,
-//            1f, 0f, 1f,
-//            0f, 0f, 1f,
-//            1f, 0f, 0f,
+            // Bottom face (y=0)
+            0f, 0f, 0f,
+            1f, 0f, 0f,
+            1f, 0f, 1f,
+            0f, 0f, 1f,
+            1f, 0f, 1f,
+            0f, 0f, 0f,
 
             // Front face (z=0)
-            0f, 1f, 0f,
+            1f, 1f, 0f,
             0f, 0f, 0f,
             1f, 0f, 0f,
             0f, 1f, 0f,
-            1f, 0f, 0f,
+            0f, 0f, 0f,
             1f, 1f, 0f,
 
-//            // Left face (x=0)
-//            0f, 1f, 0f,
-//            0f, 0f, 0f,
-//            0f, 0f, 1f,
-//            0f, 1f, 0f,
-//            0f, 0f, 1f,
-//            0f, 1f, 1f,
+            // Left face (x=0)
+            0f, 1f, 0f,
+            0f, 0f, 0f,
+            0f, 0f, 1f,
+            0f, 1f, 0f,
+            0f, 0f, 1f,
+            0f, 1f, 1f,
 
             // Right face (x=1)
             1f, 1f, 0f,
             1f, 0f, 0f,
+            1f, 1f, 1f,
+            1f, 1f, 1f,
+            1f, 0f, 0f,
             1f, 0f, 1f,
-            1f, 1f, 0f,
+
+            // Back face (z=1)
+            0f, 1f, 1f,
+            0f, 0f, 1f,
+            1f, 0f, 1f,
+            0f, 1f, 1f,
             1f, 0f, 1f,
             1f, 1f, 1f,
 
-//            // Back face (z=1)
-//            0f, 1f, 1f,
-//            0f, 0f, 1f,
-//            1f, 0f, 1f,
-//            0f, 1f, 1f,
-//            1f, 0f, 1f,
-//            1f, 1f, 1f,
-
-//            // Top face (y=1)
-//            0f, 1f, 0f,
-//            1f, 1f, 0f,
-//            1f, 1f, 1f,
-//            0f, 1f, 0f,
-//            1f, 1f, 1f,
-//            0f, 1f, 1f
+            // Top face (y=1)
+            1f, 1f, 0f,
+            0f, 1f, 0f,
+            0f, 1f, 1f,
+            1f, 1f, 1f,
+            1f, 1f, 0f,
+            0f, 1f, 1f
         )
         triangle =
             GLTriangles(this, R.raw.colored_vertex_shader, R.raw.colored_fragment_shader, triangleCoords)
@@ -177,7 +181,7 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 //        setCamLocation(horAngle + 0.1f * PI.toFloat() * deltaTime, vertAngle, radius)
 
         floorGrid.drawObject()
-        triangle.drawObject()
+//        triangle.drawObject()
 
         if (humanModel.allFramesAdded)
         {
@@ -200,23 +204,40 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         lastTime = System.nanoTime()
     }
 
-    public fun onTouchEvent(event : MotionEvent) : Boolean
-    {
-        when (event.action)
-        {
-            MotionEvent.ACTION_DOWN ->
-            {
+    public fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
                 lastX = event.x
                 lastY = event.y
+                isPinching = false
             }
 
-            MotionEvent.ACTION_MOVE ->
-            {
-                val dx = event.x - lastX
-                val dy = event.y - lastY
-                handleSwipe(dx, dy)
-                lastX = event.x
-                lastY = event.y
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                if (event.pointerCount == 2) {
+                    initialPinchDistance = getDistance(event)
+                    isPinching = true
+                }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (isPinching && event.pointerCount == 2) {
+                    val newDistance = getDistance(event)
+                    val scale = newDistance / initialPinchDistance
+                    handlePinch(scale)
+                    initialPinchDistance = newDistance
+                } else if (!isPinching) {
+                    val dx = event.x - lastX
+                    val dy = event.y - lastY
+                    handleSwipe(dx, dy)
+                    lastX = event.x
+                    lastY = event.y
+                }
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                if (event.pointerCount <= 2) {
+                    isPinching = false
+                }
             }
         }
         return true
@@ -228,6 +249,21 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         vertAngle += dy * sensitivity
 
         vertAngle = vertAngle.coerceIn(-maxVertAngle, maxVertAngle)
+    }
+
+    private fun handlePinch(scale: Float) {
+        // scale > 1 → zoom in, scale < 1 → zoom out
+        radius /= scale
+        radius = radius.coerceIn(minRadius, maxRadius)
+    }
+
+    private fun getDistance(event: MotionEvent): Float {
+        if (event.pointerCount >= 2) {
+            val dx = event.getX(0) - event.getX(1)
+            val dy = event.getY(0) - event.getY(1)
+            return kotlin.math.sqrt(dx * dx + dy * dy)
+        }
+        return 0f
     }
 
     private fun setCamLocation(newHorAngle : Float, newVertAngle : Float, newRadius : Float)

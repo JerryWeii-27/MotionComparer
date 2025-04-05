@@ -24,6 +24,8 @@ data class Vector3(val x : Float = 0.0f, val y : Float = 0.0f, val z : Float = 0
         x * other.y - y * other.x
     )
 
+    fun dot(other : Vector3) : Float = x * other.x + y * other.y + z * other.z
+
     fun magnitude() : Float = sqrt(x * x + y * y + z * z)
 
     fun normalize() : Vector3
@@ -35,5 +37,15 @@ data class Vector3(val x : Float = 0.0f, val y : Float = 0.0f, val z : Float = 0
     override fun toString() : String
     {
         return "Vector3(x=$x, y=$y, z=$z)"
+    }
+
+    companion object
+    {
+        fun computeNormal(a : Vector3, b : Vector3, c : Vector3) : Vector3
+        {
+            val v1 = b - a
+            val v2 = c - a
+            return v1.cross(v2).normalize()
+        }
     }
 }

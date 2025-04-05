@@ -48,7 +48,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     lateinit var glRenderer : GLRenderer
     lateinit var glSurfaceView : GLSurfaceView
 
-    public var sampleIntervalMs : Long = 100;
+    public var sampleIntervalMs : Long = 500;
 
     private lateinit var backgroundExecutor : ScheduledExecutorService
 
