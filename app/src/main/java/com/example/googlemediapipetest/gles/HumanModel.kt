@@ -1,9 +1,9 @@
-package com.example.googlemediapipetest
+package com.example.googlemediapipetest.gles
 
 import android.opengl.GLES32
 import android.util.Log
-import com.example.googlemediapipetest.gles.GLObject
-import com.example.googlemediapipetest.gles.GLRenderer
+import com.example.googlemediapipetest.R
+import com.example.googlemediapipetest.Vector3
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.PI
@@ -38,14 +38,10 @@ class HumanModel(renderer : GLRenderer) : GLObject(
     val headRadius = 0.12f
     val headRes = 4
 
-    val vboId = IntArray(2)
-
     public fun bindVBO()
     {
-        GLES32.glGenBuffers(2, vboId, 0)
-
         // Vertices
-        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[0])
 
         val frameSizeBytes = vertexCount * 3 * 4 // (x,y,z) × 4 bytes per float.
         GLES32.glBufferData(
@@ -56,7 +52,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         )
 
         // Normals
-        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[1])
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[1])
 
         GLES32.glBufferData(
             GLES32.GL_ARRAY_BUFFER,
@@ -75,7 +71,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         updateVBOs(frame)
 
         // Pos buffer.
-        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[0])
 
         val positionHandle = GLES32.glGetAttribLocation(program, "vPosition")
         GLES32.glEnableVertexAttribArray(positionHandle)
@@ -89,7 +85,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         )
 
         // Normal buffer.
-        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[1])
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[1])
         val normalHandle = GLES32.glGetAttribLocation(program, "vNormal")
         GLES32.glEnableVertexAttribArray(normalHandle)
         GLES32.glVertexAttribPointer(
@@ -119,7 +115,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         val frameOffset = frameInAnimationData * vertexCount * 3
 
         // Bind VBO.
-        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[0])
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[0])
 
         // Copy only the current frame's data to GPU.
         val buffer = ByteBuffer
@@ -139,7 +135,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         )
 
         // Bind VBO.
-        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, vboId[1])
+        GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[1])
 
         // Copy only the current frame's data to GPU.
         buffer.put(packedNormalData, frameOffset, vertexCount * 3).position(0)
@@ -193,9 +189,9 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         quickAddTwoTriangles(27, 29, 31, limbsRadius)
 
         // Face: 0
-        val earMid = (landmarksPos[7] + landmarksPos[8]) / 2.0f
-        val noseToEarMid = (earMid - landmarksPos[0]).normalize()
-        quickAddSphere(earMid + noseToEarMid * 0.15f)
+//        val earMid = (landmarksPos[7] + landmarksPos[8]) / 2.0f
+//        val noseToEarMid = (earMid - landmarksPos[0]).normalize()
+//        quickAddSphere(earMid + noseToEarMid * 0.15f)
 
         if (!::packedPositionData.isInitialized)
         {
@@ -221,7 +217,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         val a = landmarksPos[i]
         val b = landmarksPos[j]
         val c = landmarksPos[k]
-        val normal = Vector3.computeNormal(a, b, c)
+        val normal = Vector3.Companion.computeNormal(a, b, c)
 
         val d = a + normal * thickness
         val e = b + normal * thickness
@@ -421,7 +417,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
     fun addNormals(center : Vector3, v1 : Vector3, v2 : Vector3, v3 : Vector3)
     {
         val triCenter = (v1 + v2 + v3) / 3.0f
-        val normal = Vector3.computeNormal(v1, v2, v3)
+        val normal = Vector3.Companion.computeNormal(v1, v2, v3)
 
         val toCenter = (center - triCenter).normalize()
         if (normal.dot(toCenter) > 0)

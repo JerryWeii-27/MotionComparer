@@ -6,7 +6,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.util.Log
 import android.view.MotionEvent
-import com.example.googlemediapipetest.HumanModel
+import com.example.googlemediapipetest.gles.HumanModel
 import com.example.googlemediapipetest.R
 import com.example.googlemediapipetest.fragment.ExemplarVideoAnalysis
 import javax.microedition.khronos.egl.EGLConfig
@@ -86,8 +86,8 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
     )
     {
         Log.d("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
-        GLES32.glClearColor(0.2f, 0.2f, 0.3f, 1.0f)
-        GLES32.glEnable(GLES32.GL_DEPTH_TEST)
+        GLES32.glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
+
 
         setCamLocation(horAngle, vertAngle, radius)
 
@@ -145,6 +145,11 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 
         floorGrid = GLGrid(this, 10.0f, 0.5f)
 
+        newHumanModel()
+    }
+
+    public fun newHumanModel()
+    {
         humanModel = HumanModel(this)
     }
 

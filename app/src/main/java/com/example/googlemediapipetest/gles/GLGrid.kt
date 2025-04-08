@@ -11,7 +11,7 @@ class GLGrid(
 ) : GLObject(
     renderer,
     R.raw.simple_vertex_shader,
-    R.raw.white_fragment_shader,
+    R.raw.red_fragment_shader,
     GLES32.GL_LINES
 )
 {

@@ -2,6 +2,7 @@ package com.example.googlemediapipetest.fragment
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.graphics.PixelFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.opengl.GLSurfaceView
@@ -21,7 +22,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import com.example.googlemediapipetest.HumanModel
 import com.example.googlemediapipetest.gles.GLRenderer
 import com.example.googlemediapipetest.R
 import com.example.googlemediapipetest.Vector3
@@ -41,6 +41,7 @@ import java.util.concurrent.ScheduledExecutorService
 class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis)
 {
     private var poseLandmarker : PoseLandmarker? = null
+    val modelName = "pose_landmarker_heavy.task"
     lateinit var buttonPickVideo : Button
     lateinit var pvPlayerView : PlayerView
     lateinit var player : ExoPlayer
@@ -48,7 +49,9 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     lateinit var glRenderer : GLRenderer
     lateinit var glSurfaceView : GLSurfaceView
 
-    public var sampleIntervalMs : Long = 500;
+    public var sampleIntervalMs : Long = 1000;
+    var videoWidth : Int = -1;
+    var videoHeight : Int = -1;
 
     private lateinit var backgroundExecutor : ScheduledExecutorService
 
@@ -83,8 +86,30 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         pbDetectionProgress = view.findViewById(R.id.pbExemplarDetectionProgress)
         pbDetectionProgress.setProgress(0, true)
 
-        val modelName = "pose_landmarker_heavy.task"
 
+
+        initPoseLandmarker()
+
+        // OpenGL
+
+        glSurfaceView = view.findViewById<GLSurfaceView>(R.id.glSurfaceView)
+        glSurfaceView.setEGLContextClientVersion(3)
+        glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        glSurfaceView.holder.setFormat(PixelFormat.TRANSLUCENT);
+        glSurfaceView.setZOrderOnTop(true);
+
+
+        glRenderer = GLRenderer(requireContext())
+        glRenderer.sampleInterval = sampleIntervalMs.toInt()
+
+        glSurfaceView.setRenderer(glRenderer)
+
+        @SuppressLint("ClickableViewAccessibility")
+        glSurfaceView.setOnTouchListener() { _, event -> glRenderer.onTouchEvent(event) }
+    }
+
+    private fun initPoseLandmarker()
+    {
         try
         {
             val baseOptionBuilder = BaseOptions.builder()
@@ -105,19 +130,6 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         {
             Log.e("GPUDelegation", "GPU delegation error.")
         }
-
-        // OpenGL
-
-        glSurfaceView = view.findViewById<GLSurfaceView>(R.id.glSurfaceView)
-        glSurfaceView.setEGLContextClientVersion(2)
-
-        glRenderer = GLRenderer(requireContext())
-        glRenderer.sampleInterval = sampleIntervalMs.toInt()
-
-        glSurfaceView.setRenderer(glRenderer)
-
-        @SuppressLint("ClickableViewAccessibility")
-        glSurfaceView.setOnTouchListener() { _, event -> glRenderer.onTouchEvent(event) }
     }
 
     private fun openVideoPicker()
@@ -128,6 +140,8 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
                 override fun onResult(result : java.util.ArrayList<LocalMedia>)
                 {
                     handleVideoSelection(result)
+                    Toast.makeText(requireContext(), "Selection made.", Toast.LENGTH_SHORT)
+                        .show()
                 }
 
                 override fun onCancel()
@@ -142,9 +156,10 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     {
         if (result.isNotEmpty())
         {
+            pbDetectionProgress.setProgress(0, true)
             val videoPath = result[0].availablePath.toString().toUri()
-//            Toast.makeText(this@MainActivity, "Selection made: $videoPath", Toast.LENGTH_LONG)
-//                .show()
+            Toast.makeText(requireContext(), "Selection made: $videoPath", Toast.LENGTH_LONG)
+                .show()
 
             val mediaItem = MediaItem.fromUri(videoPath)
 
@@ -176,6 +191,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     // Run on background thread.
     private fun runDetectOnVideo(videoUri : Uri) : ResultBundle?
     {
+        initPoseLandmarker()
         val startTime = SystemClock.uptimeMillis()
         Log.i("MPDetectionProgress", "runDetectOnVideo at $startTime")
 
@@ -185,11 +201,19 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong()
 
         val firstFrame = retriever.getFrameAtTime(0)
-        val width = firstFrame?.width
-        val height = firstFrame?.height
 
-        if (videoLengthMs == null || width == null || height == null)
+        if (firstFrame == null)
         {
+            Log.e("MPDetectionProgress", "runDetectOnVideo: First frame is null.")
+            return null
+        }
+
+        videoWidth = firstFrame.width
+        videoHeight = firstFrame.height
+
+        if (videoLengthMs == null)
+        {
+            Log.e("MPDetectionProgress", "runDetectOnVideo: Video length is null.")
             return null
         }
 
@@ -213,6 +237,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
                     // Convert the input Bitmap object to an MPImage object to run inference
                     val mpImage = BitmapImageBuilder(argb8888Frame).build()
 
+                    Log.i("MPDetectionProgress", "runDetectOnVideo: Calling poseLandmarker.")
                     poseLandmarker?.detectForVideo(mpImage, timeStampMs)?.let { detectionResult ->
                         resultList.add(detectionResult)
                     } ?: {
@@ -239,7 +264,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             "Detection finished at $endTime. Time Taken: $timeTaken seconds."
         )
 
-        return ResultBundle(resultList, sampleIntervalMs, height, width)
+        return ResultBundle(resultList, sampleIntervalMs, videoHeight, videoWidth)
     }
 
     private fun processResultBundle(resultBundle : ResultBundle)
@@ -251,38 +276,72 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         // - Data of that frame saved to a mutableList
         // - List added to floatArray
         // -
+        glRenderer.newHumanModel()
         glRenderer.humanModel.totalFrames = resultBundle.resultsList.size
         val s = resultBundle.resultsList.size
         Log.i("OpenGL", "processResultBundle: $s")
 
         for (i in 0 until resultBundle.resultsList.size)
         {
-            val worldLandmarksList = resultBundle.resultsList[i].worldLandmarks()
 
-            Log.i("LandmarksList", worldLandmarksList.toString())
+            val landmarksList = resultBundle.resultsList[i]
+            Log.i("LandmarksList", landmarksList.toString())
 
-            val jointsVec3Arr = Array(33) { Vector3() }
-
-            var index : Int = 0
-            for (sublist in worldLandmarksList)
-            {
-                for (landmark in sublist)
-                {
-                    val x = landmark.x()
-                    val y = -landmark.y()
-                    val z = landmark.z()
-
-                    jointsVec3Arr[index++] = Vector3(x, y, z)
-
-//                    Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
-                }
-            }
+            val jointsVec3Arr = landmarksToVec3Arr(landmarksList)
 
             glRenderer.humanModel.updateJointsForSingleFrame(i, jointsVec3Arr)
         }
 
         glRenderer.humanModel.bindVBO()
         glRenderer.humanModel.allFramesAdded = true
+    }
+
+    fun camSpaceLandmarksToVec3Arr(result : PoseLandmarkerResult) : Array<Vector3>
+    {
+        val landmarksList = result.landmarks()
+        val jointsVec3Arr = Array(33) { Vector3() }
+
+        var index : Int = 0
+        for (sublist in landmarksList)
+        {
+            for (landmark in sublist)
+            {
+                val x = (landmark.x())
+                val y = (-landmark.y())
+                val z = (landmark.z())
+
+                jointsVec3Arr[index++] = Vector3(x, y, z)
+
+//                    Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
+            }
+        }
+
+        Log.i("Landmarks", "")
+
+        return jointsVec3Arr
+    }
+
+    fun landmarksToVec3Arr(result : PoseLandmarkerResult) : Array<Vector3>
+    {
+        val landmarksList = result.worldLandmarks()
+        val jointsVec3Arr = Array(33) { Vector3() }
+
+        var index : Int = 0
+        for (sublist in landmarksList)
+        {
+            for (landmark in sublist)
+            {
+                val x = landmark.x()
+                val y = -landmark.y()
+                val z = landmark.z()
+
+                jointsVec3Arr[index++] = Vector3(x, y, z)
+
+//                    Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
+            }
+        }
+
+        return jointsVec3Arr
     }
 
     data class ResultBundle(

@@ -18,7 +18,7 @@ void main() {
     vec3 finalColor = baseColor * diffuse;
 
     // Add some ambient light so unlit areas aren't completely black
-    float ambient = 0.5;
+    float ambient = 0.7;
     finalColor += baseColor * ambient;
 
     gl_FragColor = vec4(finalColor, 1.0);
