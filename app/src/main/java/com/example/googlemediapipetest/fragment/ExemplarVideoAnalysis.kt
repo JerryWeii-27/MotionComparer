@@ -14,6 +14,8 @@ import androidx.fragment.app.Fragment
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.core.net.toUri
@@ -27,6 +29,7 @@ import com.example.googlemediapipetest.R
 import com.example.googlemediapipetest.Vector3
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
@@ -37,19 +40,31 @@ import com.luck.picture.lib.interfaces.OnResultCallbackListener
 import java.util.ArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis)
 {
     private var poseLandmarker : PoseLandmarker? = null
     val modelName = "pose_landmarker_heavy.task"
     lateinit var buttonPickVideo : Button
-    lateinit var pvPlayerView : PlayerView
+
+    // Video player.
     lateinit var player : ExoPlayer
+    lateinit var pvPlayerView : PlayerView
+    lateinit var buttonNextFrame : ImageButton
+    lateinit var buttonPrevFrame : ImageButton
+    lateinit var etFrameStep : EditText
+    var frameStep : Int = 0;
+    var currentPosition : Long = 0;
+
     lateinit var pbDetectionProgress : ProgressBar
     lateinit var glRenderer : GLRenderer
     lateinit var glSurfaceView : GLSurfaceView
 
-    public var sampleIntervalMs : Long = 1000;
+    public var sampleIntervalFrames : Int = 50
+    var frameDurationMS : Long? = null
+    var totalDurationMS : Long? = null
     var videoWidth : Int = -1;
     var videoHeight : Int = -1;
 
@@ -64,6 +79,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         return inflater.inflate(R.layout.fragment_exemplar_video_analysis, container, false)
     }
 
+
     override fun onViewCreated(view : View, savedInstanceState : Bundle?)
     {
         super.onViewCreated(view, savedInstanceState)
@@ -73,20 +89,35 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             insets
         }
 
-        buttonPickVideo = view.findViewById(R.id.buttonExemplarPickVideo)
+
 
         pvPlayerView = view.findViewById(R.id.pvExemplarPlayerView)
         player = ExoPlayer.Builder(requireContext()).build()
         pvPlayerView.player = player
+        pvPlayerView.useController = false
 
+        // Update frame.
+        etFrameStep = view.findViewById(R.id.etFrameStep)
+        buttonNextFrame = view.findViewById(R.id.buttonNextFrame)
+        buttonPrevFrame = view.findViewById(R.id.buttonPrevFrame)
+
+        buttonNextFrame.setOnClickListener {
+            updateFrame(1)
+        }
+        buttonPrevFrame.setOnClickListener {
+            updateFrame(-1)
+        }
+
+
+        // Pick video.
+        buttonPickVideo = view.findViewById(R.id.buttonExemplarPickVideo)
         buttonPickVideo.setOnClickListener() {
             openVideoPicker()
         }
 
+        // Progress bar.
         pbDetectionProgress = view.findViewById(R.id.pbExemplarDetectionProgress)
         pbDetectionProgress.setProgress(0, true)
-
-
 
         initPoseLandmarker()
 
@@ -98,9 +129,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         glSurfaceView.holder.setFormat(PixelFormat.TRANSLUCENT);
         glSurfaceView.setZOrderOnTop(true);
 
-
         glRenderer = GLRenderer(requireContext())
-        glRenderer.sampleInterval = sampleIntervalMs.toInt()
 
         glSurfaceView.setRenderer(glRenderer)
 
@@ -108,12 +137,32 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         glSurfaceView.setOnTouchListener() { _, event -> glRenderer.onTouchEvent(event) }
     }
 
+    private fun updateFrame(direction: Int) {
+        val player = pvPlayerView.player ?: run {
+            Log.e("VideoPlayer", "updateFrame: pvPlayerView.player is null.")
+            return
+        }
+
+        val currentPosition = player.currentPosition
+
+        if (frameDurationMS == null || totalDurationMS == null) {
+            Log.e("VideoPlayer", "updateFrame: No frame duration or total duration.")
+            return
+        }
+
+        frameStep = etFrameStep.text.toString().toIntOrNull() ?: frameStep
+
+        // Calculate and seek to the new position.
+        val newPosition = (currentPosition + direction * frameStep * frameDurationMS!!) % totalDurationMS!!
+        player.seekTo(newPosition)
+    }
+
     private fun initPoseLandmarker()
     {
         try
         {
             val baseOptionBuilder = BaseOptions.builder()
-//            baseOptionBuilder.setDelegate(Delegate.GPU)
+            baseOptionBuilder.setDelegate(Delegate.CPU)
             baseOptionBuilder.setModelAssetPath(modelName)
 
             val baseOptions = baseOptionBuilder.build()
@@ -128,7 +177,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             poseLandmarker = PoseLandmarker.createFromOptions(requireContext(), options)
         } catch (e : RuntimeException)
         {
-            Log.e("GPUDelegation", "GPU delegation error.")
+            Log.e("GPUDelegation", "GPU delegation error. $e")
         }
     }
 
@@ -165,7 +214,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
             player.setMediaItem(mediaItem)
             player.prepare()
-            player.play()
+//            player.play()
 
             backgroundExecutor = Executors.newSingleThreadScheduledExecutor()
             backgroundExecutor.execute {
@@ -197,8 +246,17 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
         val retriever = MediaMetadataRetriever()
         retriever.setDataSource(requireContext(), videoUri)
-        val videoLengthMs =
+        val videoLengthMS =
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong()
+        val totalFrames =
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)
+                ?.toLong()
+        if (videoLengthMS != null && totalFrames != null)
+        {
+            frameDurationMS = (videoLengthMS.toDouble() / totalFrames.toDouble()).roundToLong()
+            totalDurationMS = videoLengthMS
+        }
+        glRenderer.sampleInterval = sampleIntervalFrames * frameDurationMS!!.toInt()
 
         val firstFrame = retriever.getFrameAtTime(0)
 
@@ -210,22 +268,68 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
 
         videoWidth = firstFrame.width
         videoHeight = firstFrame.height
+        Log.i("SelectedVideo", "Width: $videoWidth, height: $videoHeight.")
 
-        if (videoLengthMs == null)
+        activity?.runOnUiThread {
+            val videoAspect : Float = videoWidth.toFloat() / videoHeight.toFloat()
+            val viewAspect : Float = glSurfaceView.width.toFloat() / glSurfaceView.height.toFloat()
+
+            Log.i("SelectedVideo", "Old view aspect: $viewAspect")
+
+            if (videoAspect > viewAspect)
+            {
+                // Width too large.
+                val newWidth = pvPlayerView.width
+                val newHeight = (glSurfaceView.width / videoAspect).roundToInt()
+                glSurfaceView.layoutParams = glSurfaceView.layoutParams.apply {
+                    width = newWidth
+                    height = newHeight
+                }
+                glSurfaceView.requestLayout()
+            }
+            else
+            {
+                // Height too large.
+                val newWidth = (glSurfaceView.height * videoAspect).roundToInt()
+                val newHeight = pvPlayerView.height
+                glSurfaceView.layoutParams = glSurfaceView.layoutParams.apply {
+                    width = newWidth
+                    height = newHeight
+                }
+                glSurfaceView.requestLayout()
+            }
+
+            glSurfaceView.post {
+                val widthAfterLayout = glSurfaceView.width
+                val heightAfterLayout = glSurfaceView.height
+                val playerWidth = pvPlayerView.width
+                val playerHeight = pvPlayerView.height
+                Log.i(
+                    "SelectedVideo",
+                    "New size of glSurfaceView: $widthAfterLayout x $heightAfterLayout. \nSize of entire video player: $playerWidth x $playerHeight."
+                )
+                Log.i(
+                    "SelectedVideo",
+                    "Video aspect: $videoAspect. New view aspect: ${glSurfaceView.width.toFloat() / glSurfaceView.height.toFloat()}."
+                )
+            }
+        }
+
+        if (videoLengthMS == null)
         {
             Log.e("MPDetectionProgress", "runDetectOnVideo: Video length is null.")
             return null
         }
 
-        val numberOfFramesToDetect = videoLengthMs / sampleIntervalMs
+        val numberOfFramesToDetect = videoLengthMS / (sampleIntervalFrames * frameDurationMS!!)
         val resultList = mutableListOf<PoseLandmarkerResult>()
 
         var currentProgressPercent : Int = 0
 
         for (i in 0..numberOfFramesToDetect)
         {
-            val timeStampMs = i * sampleIntervalMs
-            Log.i("MPDetectionProgress", "Detecting $timeStampMs out of $videoLengthMs.")
+            val timeStampMs = i * sampleIntervalFrames * frameDurationMS!!
+            Log.i("MPDetectionProgress", "Detecting $timeStampMs out of $videoLengthMS.")
 
             retriever.getFrameAtTime(timeStampMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST)
                 ?.let { frame ->
@@ -264,7 +368,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             "Detection finished at $endTime. Time Taken: $timeTaken seconds."
         )
 
-        return ResultBundle(resultList, sampleIntervalMs, videoHeight, videoWidth)
+        return ResultBundle(resultList, sampleIntervalFrames * frameDurationMS!!, videoHeight, videoWidth)
     }
 
     private fun processResultBundle(resultBundle : ResultBundle)

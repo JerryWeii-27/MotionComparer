@@ -185,11 +185,12 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         setCamLocation(horAngle, vertAngle, radius)
 //        setCamLocation(horAngle + 0.1f * PI.toFloat() * deltaTime, vertAngle, radius)
 
-        floorGrid.drawObject()
+//        floorGrid.drawObject()
 //        triangle.drawObject()
 
         if (humanModel.allFramesAdded)
         {
+            Log.i("HumanModel", "Total frames: ${humanModel.totalFrames}")
             totalDeltaTimeFromLastFrameMS += (deltaTime * 1000f).toInt()
 
             currentFrame += totalDeltaTimeFromLastFrameMS / sampleInterval
