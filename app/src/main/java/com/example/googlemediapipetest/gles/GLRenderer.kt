@@ -25,8 +25,9 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
     // Objects.
     lateinit var floorGrid : GLGrid
     lateinit var triangle : GLTriangles
+    lateinit var flatSkeleton : FlatSkeleton
     lateinit var humanModel : HumanModel
-    var currentFrame = 0
+    var currentFrame : Int = 0
     var totalDeltaTimeFromLastFrameMS = 0
     var sampleInterval = 0;
 
@@ -145,12 +146,20 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 
         floorGrid = GLGrid(this, 10.0f, 0.5f)
 
-        newHumanModel()
+        humanModel = HumanModel(this)
+        flatSkeleton = FlatSkeleton(this)
     }
 
-    public fun newHumanModel()
+    public fun newHumanModel(totalFrames : Int)
     {
         humanModel = HumanModel(this)
+        humanModel.totalFrames = totalFrames
+    }
+
+    public fun newFlatSkeleton(totalFrames : Int)
+    {
+        flatSkeleton = FlatSkeleton(this)
+        flatSkeleton.totalFrames = totalFrames
     }
 
     override fun onSurfaceChanged(
@@ -178,7 +187,6 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
     override fun onDrawFrame(gl : GL10?)
     {
         // Update deltaTime.
-        updateDeltaTime()
 
         // Clear buffers at start of each frame.
         GLES32.glClear(GLES32.GL_COLOR_BUFFER_BIT or GLES32.GL_DEPTH_BUFFER_BIT)
@@ -188,8 +196,25 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 //        floorGrid.drawObject()
 //        triangle.drawObject()
 
+        drawFlatSkeleton()
+    }
+
+    fun drawFlatSkeleton()
+    {
+        // Update flat skeleton according to user's actions.
+//        Log.i("OpenGL", "onDrawFrame: $currentFrame. \nDrawing is ${flatSkeleton.allFramesAdded}.")
+        if (flatSkeleton.allFramesAdded)
+        {
+            flatSkeleton.drawObjectAtFrame(currentFrame)
+        }
+    }
+
+    fun drawHumanModel()
+    {
+        // Update human model on its onw.
         if (humanModel.allFramesAdded)
         {
+            updateDeltaTime()
             Log.i("HumanModel", "Total frames: ${humanModel.totalFrames}")
             totalDeltaTimeFromLastFrameMS += (deltaTime * 1000f).toInt()
 

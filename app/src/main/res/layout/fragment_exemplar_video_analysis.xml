@@ -11,11 +11,22 @@
         android:id="@+id/buttonExemplarPickVideo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="48dp"
         android:layout_marginTop="4dp"
         android:text="Pick Video"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/buttonChangePlayer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="48dp"
+        android:backgroundTint="#FF9800"
+        android:text="Not using Exo"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.media3.ui.PlayerView
@@ -30,8 +41,19 @@
 
     </androidx.media3.ui.PlayerView>
 
+    <ImageView
+        android:id="@+id/ivCurrentFrame"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="64dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/pbExemplarDetectionProgress" />
+
     <android.opengl.GLSurfaceView
         android:id="@+id/glSurfaceView"
+        android:background="@drawable/gl_outline"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="64dp"
@@ -44,20 +66,27 @@
         android:id="@+id/etFrameStep"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="5"
-        android:inputType="number"
-        android:hint="Enter Step"
+        android:ems="6"
         android:gravity="center"
+        android:hint="Enter Step"
+        android:inputType="number"
+        android:minWidth="64dp"
+        android:minHeight="48dp"
+        android:padding="16dp"
         app:layout_constraintBottom_toTopOf="@+id/pvExemplarPlayerView"
         app:layout_constraintEnd_toStartOf="@+id/buttonNextFrame"
         app:layout_constraintStart_toEndOf="@+id/buttonPrevFrame" />
 
     <ImageButton
         android:id="@+id/buttonNextFrame"
-        android:layout_width="48dp"
-        android:layout_height="32dp"
+        android:contentDescription="buttonNextFrame"
+        android:layout_width="64dp"
+        android:layout_height="48dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
+        android:minWidth="48dp"
+        android:minHeight="48dp"
+        android:padding="16dp"
         android:background="#E91E63"
         android:src="@drawable/arrow_forward_24dp_ffffff_fill0_wght400_grad0_opsz24"
         app:layout_constraintBottom_toTopOf="@+id/pvExemplarPlayerView"
@@ -65,10 +94,14 @@
 
     <ImageButton
         android:id="@+id/buttonPrevFrame"
-        android:layout_width="48dp"
-        android:layout_height="32dp"
+        android:contentDescription="buttonPrevFrame"
+        android:layout_width="64dp"
+        android:layout_height="48dp"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="8dp"
+        android:minWidth="48dp"
+        android:minHeight="48dp"
+        android:padding="16dp"
         android:background="#03A9F4"
         android:src="@drawable/arrow_back_24dp_ffffff_fill0_wght400_grad0_opsz24"
         app:layout_constraintBottom_toTopOf="@+id/pvExemplarPlayerView"

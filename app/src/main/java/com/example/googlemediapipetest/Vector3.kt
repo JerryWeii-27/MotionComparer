@@ -28,7 +28,7 @@ data class Vector3(val x : Float = 0.0f, val y : Float = 0.0f, val z : Float = 0
 
     fun magnitude() : Float = sqrt(x * x + y * y + z * z)
 
-    fun normalize() : Vector3
+    fun normalized() : Vector3
     {
         val mag = magnitude()
         return if (mag == 0.0f) this else Vector3(x / mag, y / mag, z / mag)
@@ -45,7 +45,7 @@ data class Vector3(val x : Float = 0.0f, val y : Float = 0.0f, val z : Float = 0
         {
             val v1 = b - a
             val v2 = c - a
-            return v1.cross(v2).normalize()
+            return v1.cross(v2).normalized()
         }
     }
 }

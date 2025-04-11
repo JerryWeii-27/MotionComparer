@@ -20,7 +20,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
     public lateinit var packedPositionData : FloatArray
     public lateinit var packedNormalData : FloatArray
 
-    public var totalFrames = 0
+    public var totalFrames : Int = 0
     var vertexCount = 0
 
     public var haveLandmarks : Boolean = false
@@ -279,8 +279,8 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         val normal = landmarksPos[i] - landmarksPos[j]
         val center = (landmarksPos[i] + landmarksPos[j]) / 2f
 
-        val u : Vector3 = normal.cross(Vector3(0f, 114.514f, 0f)).normalize()
-        val v = normal.cross(u).normalize()
+        val u : Vector3 = normal.cross(Vector3(0f, 114.514f, 0f)).normalized()
+        val v = normal.cross(u).normalized()
 
         val pointsArr = Array(2 * limbsRes + 2) { Vector3() }
         pointsArr[0] = landmarksPos[i]  // Top center
@@ -419,7 +419,7 @@ class HumanModel(renderer : GLRenderer) : GLObject(
         val triCenter = (v1 + v2 + v3) / 3.0f
         val normal = Vector3.Companion.computeNormal(v1, v2, v3)
 
-        val toCenter = (center - triCenter).normalize()
+        val toCenter = (center - triCenter).normalized()
         if (normal.dot(toCenter) > 0)
         {
             normalsList.add(-normal)
