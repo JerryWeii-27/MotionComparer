@@ -6,9 +6,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.util.Log
 import android.view.MotionEvent
-import com.example.googlemediapipetest.gles.HumanModel
 import com.example.googlemediapipetest.R
-import com.example.googlemediapipetest.fragment.ExemplarVideoAnalysis
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.PI

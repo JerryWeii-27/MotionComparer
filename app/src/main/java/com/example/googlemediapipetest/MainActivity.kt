@@ -1,8 +1,6 @@
 package com.example.googlemediapipetest
 
 import android.os.Bundle
-import android.view.Menu
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.googlemediapipetest.fragment.AppSettings

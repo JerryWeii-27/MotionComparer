@@ -19,7 +19,6 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -28,7 +27,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.googlemediapipetest.gles.GLRenderer
 import com.example.googlemediapipetest.R
-import com.example.googlemediapipetest.Vector3
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
@@ -44,11 +42,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
-import androidx.core.graphics.scale
-import androidx.media3.exoplayer.SeekParameters
 import com.example.googlemediapipetest.BitmapHelper
+import com.example.googlemediapipetest.MPHelper
 import com.example.googlemediapipetest.ResultBundle
-import com.example.googlemediapipetest.gles.FlatSkeleton
 
 class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis)
 {
@@ -339,7 +335,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
                             Toast.LENGTH_SHORT
                         ).show()
                         Log.i("MPDetectionProgress", "Running UI thread code.")
-                        glSurfaceView.queueEvent { processResultBundle2D(resultBundle) }
+                        glSurfaceView.queueEvent { MPHelper.processResultBundle2D(resultBundle, glRenderer) }
                     }
                 }
             }
@@ -507,108 +503,5 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             videoHeight,
             videoWidth
         )
-    }
-
-    private fun processResultBundle3D(resultBundle : ResultBundle)
-    {
-        Log.i("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
-
-        val resultListSize = resultBundle.resultsList.size
-        glRenderer.newHumanModel(resultListSize)
-        glRenderer.humanModel.totalFrames = resultListSize
-
-        Log.i("OpenGL", "processResultBundle: $resultListSize")
-
-        for (i in 0 until resultListSize)
-        {
-            val landmarksList = resultBundle.resultsList[i]
-            Log.i("LandmarksList", landmarksList.toString())
-
-            val jointsVec3Arr = landmarksToVec3Arr(landmarksList)
-            glRenderer.humanModel.updateJointsForSingleFrame(i, jointsVec3Arr)
-        }
-
-        glRenderer.humanModel.bindVBO()
-        glRenderer.humanModel.allFramesAdded = true
-    }
-
-    private fun processResultBundle2D(resultBundle : ResultBundle)
-    {
-        Log.i("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
-        // Go through every frame in result bundle.
-        // For each frame:
-        // - updateJoints(frame)
-        // - Data of that frame saved to a mutableList
-        // - List added to floatArray
-        val resultListSize = resultBundle.resultsList.size
-        glRenderer.newFlatSkeleton(resultListSize)
-
-        Log.i("OpenGL", "processResultBundle: $resultListSize")
-
-        for (i in 0 until resultListSize)
-        {
-            val landmarksList = resultBundle.resultsList[i]
-            Log.i("LandmarksList", landmarksList.toString())
-
-            val jointsVec3Arr = camSpaceLandmarksToVec3Arr(landmarksList)
-
-            glRenderer.flatSkeleton.updateJointsForSingleFrame(i, jointsVec3Arr)
-        }
-
-        glRenderer.flatSkeleton.bindVBO()
-        glRenderer.flatSkeleton.allFramesAdded = true
-    }
-
-    fun camSpaceLandmarksToVec3Arr(result : PoseLandmarkerResult) : Array<Vector3>
-    {
-        val landmarksList = result.landmarks()
-        val jointsVec3Arr = Array(33) { Vector3() }
-
-        var index : Int = 0
-        for (sublist in landmarksList)
-        {
-            for (landmark in sublist)
-            {
-                val x = landmark.x() * 2f - 1f
-                val y = -landmark.y() * 2f + 1f
-                val z = landmark.z()
-
-                if (landmark.visibility().orElse(100f) < 0.5f)
-                {
-                    jointsVec3Arr[index++] = Vector3(114.514f, 114.514f, 114.514f)
-                }
-                else
-                {
-                    jointsVec3Arr[index++] = Vector3(x, y, z)
-                }
-
-                Log.i("Landmarks", "Landmark at ${Vector3(x, y, z)}.")
-            }
-        }
-
-        return jointsVec3Arr
-    }
-
-    fun landmarksToVec3Arr(result : PoseLandmarkerResult) : Array<Vector3>
-    {
-        val landmarksList = result.worldLandmarks()
-        val jointsVec3Arr = Array(33) { Vector3() }
-
-        var index : Int = 0
-        for (sublist in landmarksList)
-        {
-            for (landmark in sublist)
-            {
-                val x = landmark.x()
-                val y = -landmark.y()
-                val z = landmark.z()
-
-                jointsVec3Arr[index++] = Vector3(x, y, z)
-
-//                    Log.i("Landmarks", "Landmark at (x=$x, y=$y, z=$z).")
-            }
-        }
-
-        return jointsVec3Arr
     }
 }
