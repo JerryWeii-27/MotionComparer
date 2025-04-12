@@ -7,6 +7,7 @@ import android.opengl.Matrix
 import android.util.Log
 import android.view.MotionEvent
 import com.example.googlemediapipetest.R
+import com.example.googlemediapipetest.fragment.VideoAnalysisFragment
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.PI
@@ -16,7 +17,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.tan
 
-class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
+class GLRenderer(private val context : Context, val fragment : VideoAnalysisFragment) :
+    GLSurfaceView.Renderer
 {
     var mvpMatrix = FloatArray(16)
 
@@ -140,7 +142,12 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
             0f, 1f, 1f
         )
         triangle =
-            GLTriangles(this, R.raw.colored_vertex_shader, R.raw.colored_fragment_shader, triangleCoords)
+            GLTriangles(
+                this,
+                R.raw.colored_vertex_shader,
+                R.raw.colored_fragment_shader,
+                triangleCoords
+            )
 
         floorGrid = GLGrid(this, 10.0f, 0.5f)
 
@@ -184,6 +191,11 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
 
     override fun onDrawFrame(gl : GL10?)
     {
+        if (!fragment.isVisible)
+        {
+            return
+        }
+
         // Update deltaTime.
 
         // Clear buffers at start of each frame.
@@ -233,28 +245,37 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         lastTime = System.nanoTime()
     }
 
-    public fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
+    public fun onTouchEvent(event : MotionEvent) : Boolean
+    {
+        when (event.actionMasked)
+        {
+            MotionEvent.ACTION_DOWN ->
+            {
                 lastX = event.x
                 lastY = event.y
                 isPinching = false
             }
 
-            MotionEvent.ACTION_POINTER_DOWN -> {
-                if (event.pointerCount == 2) {
+            MotionEvent.ACTION_POINTER_DOWN ->
+            {
+                if (event.pointerCount == 2)
+                {
                     initialPinchDistance = getDistance(event)
                     isPinching = true
                 }
             }
 
-            MotionEvent.ACTION_MOVE -> {
-                if (isPinching && event.pointerCount == 2) {
+            MotionEvent.ACTION_MOVE ->
+            {
+                if (isPinching && event.pointerCount == 2)
+                {
                     val newDistance = getDistance(event)
                     val scale = newDistance / initialPinchDistance
                     handlePinch(scale)
                     initialPinchDistance = newDistance
-                } else if (!isPinching) {
+                }
+                else if (!isPinching)
+                {
                     val dx = event.x - lastX
                     val dy = event.y - lastY
                     handleSwipe(dx, dy)
@@ -263,8 +284,10 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
                 }
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                if (event.pointerCount <= 2) {
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP ->
+            {
+                if (event.pointerCount <= 2)
+                {
                     isPinching = false
                 }
             }
@@ -280,14 +303,17 @@ class GLRenderer(private val context : Context) : GLSurfaceView.Renderer
         vertAngle = vertAngle.coerceIn(-maxVertAngle, maxVertAngle)
     }
 
-    private fun handlePinch(scale: Float) {
+    private fun handlePinch(scale : Float)
+    {
         // scale > 1 → zoom in, scale < 1 → zoom out
         radius /= scale
         radius = radius.coerceIn(minRadius, maxRadius)
     }
 
-    private fun getDistance(event: MotionEvent): Float {
-        if (event.pointerCount >= 2) {
+    private fun getDistance(event : MotionEvent) : Float
+    {
+        if (event.pointerCount >= 2)
+        {
             val dx = event.getX(0) - event.getX(1)
             val dy = event.getY(0) - event.getY(1)
             return kotlin.math.sqrt(dx * dx + dy * dy)

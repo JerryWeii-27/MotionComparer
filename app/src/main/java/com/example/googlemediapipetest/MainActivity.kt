@@ -1,17 +1,36 @@
 package com.example.googlemediapipetest
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.googlemediapipetest.fragment.AppSettings
 import com.example.googlemediapipetest.fragment.CompareMotions
-import com.example.googlemediapipetest.fragment.ExemplarVideoAnalysis
+import com.example.googlemediapipetest.VideoAnalysis
+import com.example.googlemediapipetest.fragment.VideoAnalysisFragment
 import com.example.googlemediapipetest.fragment.YourVideoAnalysis
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity()
 {
-//    lateinit var tvTitle : TextView
+    //    lateinit var tvTitle : TextView
+    val exemplarVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()
+    val yourVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val logRunnable = object : Runnable {
+        override fun run() {
+            // Log all fragments' visibility status
+            Log.i("FragmentDebug", "exemplarVideoAnalysisFragment visibility: ${exemplarVideoAnalysisFragment.isVisible}." +
+                    "\nyourVideoAnalysisFragment visibility: ${yourVideoAnalysisFragment.isVisible}.")
+
+            // Repeat the task after a delay (e.g., 5 seconds)
+            handler.postDelayed(this, 10000)
+        }
+    }
+
 
     override fun onCreate(
         savedInstanceState : Bundle?
@@ -19,6 +38,7 @@ class MainActivity : AppCompatActivity()
     {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        handler.post(logRunnable)
 
 //        tvTitle = findViewById(R.id.tvTitle)
 
@@ -27,10 +47,9 @@ class MainActivity : AppCompatActivity()
         if (savedInstanceState == null)
         {
             supportFragmentManager.beginTransaction()
-                .replace(
-                    R.id.fcFragmentContainer,
-                    ExemplarVideoAnalysis()
-                ) // Replace with your fragment class
+                .add(R.id.fcFragmentContainer, exemplarVideoAnalysisFragment)
+                .add(R.id.fcFragmentContainer, yourVideoAnalysisFragment)
+                .hide(yourVideoAnalysisFragment)
                 .commit()
 
 //            tvTitle.text = bottomNavigation.menu.findItem(bottomNavigation.selectedItemId).title
@@ -39,8 +58,8 @@ class MainActivity : AppCompatActivity()
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId)
             {
-                R.id.navExemplar -> switchFragment(ExemplarVideoAnalysis())
-                R.id.navYou -> switchFragment(YourVideoAnalysis())
+                R.id.navExemplar -> switchFragment(exemplarVideoAnalysisFragment)
+                R.id.navYou -> switchFragment(yourVideoAnalysisFragment)
                 R.id.navCompare -> switchFragment(CompareMotions())
                 R.id.navSettings -> switchFragment(AppSettings())
             }
@@ -53,9 +72,14 @@ class MainActivity : AppCompatActivity()
 
     private fun switchFragment(fragment : Fragment)
     {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fcFragmentContainer, fragment)
-            .addToBackStack(null)  // Allows back navigation
-            .commit()
+        val fragmentTransaction = supportFragmentManager.beginTransaction()
+
+        supportFragmentManager.fragments.forEach {
+            fragmentTransaction.hide(it)
+        }
+
+        fragmentTransaction.show(fragment)
+
+        fragmentTransaction.commit()
     }
 }

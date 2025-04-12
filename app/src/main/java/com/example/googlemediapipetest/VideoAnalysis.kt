@@ -1,32 +1,21 @@
-package com.example.googlemediapipetest.fragment
+package com.example.googlemediapipetest
 
-import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.PixelFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.opengl.GLSurfaceView
-import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
-import android.view.LayoutInflater
-import androidx.fragment.app.Fragment
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.core.net.toUri
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
+import androidx.fragment.app.FragmentActivity
 import com.example.googlemediapipetest.gles.GLRenderer
-import com.example.googlemediapipetest.R
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
@@ -42,174 +31,48 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
-import com.example.googlemediapipetest.BitmapHelper
-import com.example.googlemediapipetest.MPHelper
-import com.example.googlemediapipetest.ResultBundle
 
-class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis)
+class VideoAnalysis(
+    val fragmentContext : Context,
+    val fragmentActivity : FragmentActivity,
+
+    // Pass UI elements explicitly
+    var ivCurrentFrame : ImageView,
+    var etFrameStep : EditText,
+    var pbDetectionProgress : ProgressBar,
+    var glSurfaceView : GLSurfaceView,
+)
 {
+    // Mediapipe pose landmarker.
     private var poseLandmarker : PoseLandmarker? = null
     val modelName = "pose_landmarker_heavy.task"
 
-    lateinit var buttonPickVideo : Button
-    var useExoPlayer : Boolean = false
-
-    // Change player button.
-    lateinit var buttonChangePlayer : Button
-
-    // Video player.
-    lateinit var player : ExoPlayer
-    lateinit var pvPlayerView : PlayerView
-
-    // Image view frame shower.
-    lateinit var ivCurrentFrame : ImageView
-    var frameBitmapList : MutableList<Bitmap> = mutableListOf<Bitmap>()
+    // Image frames.
+    var frameBitmapList : MutableList<Bitmap> = mutableListOf()
     lateinit var frameBitmapArray : Array<Bitmap>
 
-    lateinit var buttonNextFrame : ImageButton
-    lateinit var buttonPrevFrame : ImageButton
-    lateinit var etFrameStep : EditText
-    var frameStep : Int = 0;
-    public var currentFrame : Int = 0;
-
-
-    lateinit var pbDetectionProgress : ProgressBar
+    // Pose overlay.
     lateinit var glRenderer : GLRenderer
-    lateinit var glSurfaceView : GLSurfaceView
 
-    public var sampleIntervalFrames : Int = 30
+    // Frame navigation.
+    var frameStep : Int = 0
+    var currentFrame : Int = 0
+    var sampleIntervalFrames : Int = 30
+
+    // Video metadata.
     var frameDurationMS : Long? = null
     var totalDurationMS : Long? = null
-    var totalFrames : Int = -1;
-    var videoWidth : Int = -1;
-    var videoHeight : Int = -1;
+    var totalFrames : Int = -1
+    var videoWidth : Int = -1
+    var videoHeight : Int = -1
 
     private lateinit var backgroundExecutor : ScheduledExecutorService
 
-    override fun onCreateView(
-        inflater : LayoutInflater,
-        container : ViewGroup?,
-        savedInstanceState : Bundle?
-    ) : View?
-    {
-        return inflater.inflate(R.layout.fragment_exemplar_video_analysis, container, false)
-    }
-
-
-    override fun onViewCreated(view : View, savedInstanceState : Bundle?)
-    {
-        super.onViewCreated(view, savedInstanceState)
-        ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
-        // Exoplayer.
-        pvPlayerView = view.findViewById(R.id.pvExemplarPlayerView)
-        player = ExoPlayer.Builder(requireContext()).build()
-//        player.setSeekParameters(SeekParameters.EXACT)
-        pvPlayerView.player = player
-        pvPlayerView.useController = false
-
-        // Frame display with image view.
-        ivCurrentFrame = view.findViewById(R.id.ivCurrentFrame)
-
-        // Change player button.
-        buttonChangePlayer = view.findViewById(R.id.buttonChangePlayer)
-        buttonChangePlayer.setOnClickListener {
-            if (!glRenderer.flatSkeleton.allFramesAdded)
-            {
-                Log.i("ChangePlayer", "buttonChangePlayer.setOnClickListener: Not ready yet.")
-                return@setOnClickListener
-            }
-
-            useExoPlayer = !useExoPlayer
-            Log.i("ChangePlayer", "useExoPlayer: $useExoPlayer.")
-
-            if (useExoPlayer)
-            {
-                pvPlayerView.isEnabled = true
-                pvPlayerView.visibility = View.VISIBLE
-
-                ivCurrentFrame.isEnabled = false
-                ivCurrentFrame.visibility = View.INVISIBLE
-
-                player.seekTo(currentFrame * frameDurationMS!!)
-                buttonChangePlayer.text = "Using Exo"
-            }
-            else
-            {
-                pvPlayerView.isEnabled = false
-                pvPlayerView.visibility = View.INVISIBLE
-
-                ivCurrentFrame.isEnabled = true
-                ivCurrentFrame.visibility = View.VISIBLE
-
-                val bitmapIndex = currentFrame / sampleIntervalFrames
-                ivCurrentFrame.setImageBitmap(frameBitmapList[bitmapIndex])
-                buttonChangePlayer.text = "Not using Exo"
-            }
-        }
-
-        // Set default player.
-        pvPlayerView.isEnabled = false
-        pvPlayerView.visibility = View.INVISIBLE
-
-        ivCurrentFrame.isEnabled = true
-        ivCurrentFrame.visibility = View.VISIBLE
-
-        buttonChangePlayer.text = "Not using Exo"
-
-        // Update frame.
-        etFrameStep = view.findViewById(R.id.etFrameStep)
-        buttonNextFrame = view.findViewById(R.id.buttonNextFrame)
-        buttonPrevFrame = view.findViewById(R.id.buttonPrevFrame)
-
-        buttonNextFrame.setOnClickListener {
-            updateFrame(1)
-        }
-        buttonPrevFrame.setOnClickListener {
-            updateFrame(-1)
-        }
-
-        // Pick video.
-        buttonPickVideo = view.findViewById(R.id.buttonExemplarPickVideo)
-        buttonPickVideo.setOnClickListener() {
-            openVideoPicker()
-        }
-
-        // Progress bar.
-        pbDetectionProgress = view.findViewById(R.id.pbExemplarDetectionProgress)
-        pbDetectionProgress.setProgress(0, true)
-
-        initPoseLandmarker()
-
-        // OpenGL
-        glSurfaceView = view.findViewById<GLSurfaceView>(R.id.glSurfaceView)
-        glSurfaceView.setEGLContextClientVersion(3)
-        glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        glSurfaceView.holder.setFormat(PixelFormat.TRANSLUCENT);
-        glSurfaceView.setZOrderOnTop(true);
-
-        glRenderer = GLRenderer(requireContext())
-
-        glSurfaceView.setRenderer(glRenderer)
-
-        @SuppressLint("ClickableViewAccessibility")
-        glSurfaceView.setOnTouchListener() { _, event -> glRenderer.onTouchEvent(event) }
-    }
-
-    private fun updateFrame(direction : Int)
+    fun updateFrame(direction : Int)
     {
         if (!glRenderer.flatSkeleton.allFramesAdded)
         {
             Log.e("VideoPlayer", "updateFrame: Not all frames added.")
-            return
-        }
-
-        val player = pvPlayerView.player ?: run {
-            Log.e("VideoPlayer", "updateFrame: pvPlayerView.player is null.")
             return
         }
 
@@ -242,19 +105,13 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         )
         glRenderer.currentFrame = currentFrame / sampleIntervalFrames
 
-        if (useExoPlayer)
-        {
-            player.seekTo(currentFrame * frameDurationMS!!)
-            player.prepare()
-        }
-        else
-        {
-            val bitmapIndex = currentFrame / sampleIntervalFrames
-            ivCurrentFrame.setImageBitmap(frameBitmapArray[bitmapIndex])
-        }
+
+        val bitmapIndex = currentFrame / sampleIntervalFrames
+        ivCurrentFrame.setImageBitmap(frameBitmapArray[bitmapIndex])
+
     }
 
-    private fun initPoseLandmarker()
+    fun initPoseLandmarker()
     {
         try
         {
@@ -271,28 +128,28 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
                     .setNumPoses(1)
 
             val options = optionsBuilder.build()
-            poseLandmarker = PoseLandmarker.createFromOptions(requireContext(), options)
+            poseLandmarker = PoseLandmarker.createFromOptions(fragmentContext, options)
         } catch (e : RuntimeException)
         {
             Log.e("GPUDelegation", "GPU delegation error. $e")
         }
     }
 
-    private fun openVideoPicker()
+    fun openVideoPicker()
     {
-        PictureSelector.create(this).openSystemGallery(SelectMimeType.ofVideo())
+        PictureSelector.create(fragmentContext).openSystemGallery(SelectMimeType.ofVideo())
             .forSystemResult(object : OnResultCallbackListener<LocalMedia>
             {
                 override fun onResult(result : ArrayList<LocalMedia>)
                 {
                     handleVideoSelection(result)
-                    Toast.makeText(requireContext(), "Selection made.", Toast.LENGTH_SHORT)
+                    Toast.makeText(fragmentContext, "Selection made.", Toast.LENGTH_SHORT)
                         .show()
                 }
 
                 override fun onCancel()
                 {
-                    Toast.makeText(requireContext(), "Selection canceled.", Toast.LENGTH_SHORT)
+                    Toast.makeText(fragmentContext, "Selection canceled.", Toast.LENGTH_SHORT)
                         .show()
                 }
             })
@@ -302,7 +159,6 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
     {
         if (result.isNotEmpty())
         {
-            pvPlayerView.visibility = View.INVISIBLE
             ivCurrentFrame.visibility = View.INVISIBLE
 
             pbDetectionProgress.setProgress(0, true)
@@ -310,39 +166,25 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             glRenderer.flatSkeleton.allFramesAdded = false
 
             val videoPath = result[0].availablePath.toString().toUri()
-            Toast.makeText(requireContext(), "Selection made: $videoPath", Toast.LENGTH_LONG)
-                .show()
-
-            val mediaItem = MediaItem.fromUri(videoPath)
-
-            player.setMediaItem(mediaItem)
-            player.prepare()
-
-            if (useExoPlayer)
-            {
-                pvPlayerView.visibility = View.VISIBLE
-            }
-
-//            player.play()
+            Log.i("MPDetectionProgress", "Selection made: $videoPath")
 
             backgroundExecutor = Executors.newSingleThreadScheduledExecutor()
             backgroundExecutor.execute {
-                runDetectOnVideo(videoPath)?.let { resultBundle ->
-                    activity?.runOnUiThread {
-                        Toast.makeText(
-                            requireContext(),
-                            "Running UI thread code.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        Log.i("MPDetectionProgress", "Running UI thread code.")
-                        glSurfaceView.queueEvent { MPHelper.processResultBundle2D(resultBundle, glRenderer) }
+                val resultBundle = runDetectOnVideo(videoPath) ?: return@execute
+                fragmentActivity.runOnUiThread {
+                    Log.i("MPDetectionProgress", "Running UI thread code.")
+                    glSurfaceView.queueEvent {
+                        MPHelper.processResultBundle2D(
+                            resultBundle,
+                            glRenderer
+                        )
                     }
                 }
             }
         }
         else
         {
-            Toast.makeText(requireContext(), "No video selected.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(fragmentContext, "No video selected.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -354,12 +196,14 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         Log.i("MPDetectionProgress", "runDetectOnVideo at $startTime")
 
         val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(requireContext(), videoUri)
+        retriever.setDataSource(fragmentContext, videoUri)
+
         val videoLengthMS =
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong()
         val newTotalFrames =
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)
                 ?.toInt()
+
         if (videoLengthMS != null && newTotalFrames != null)
         {
             totalFrames = newTotalFrames
@@ -380,17 +224,18 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         videoHeight = firstFrame.height
         Log.i("SelectedVideo", "Width: $videoWidth, height: $videoHeight.")
 
-        activity?.runOnUiThread {
+        fragmentActivity.runOnUiThread {
             val videoAspect : Float = videoWidth.toFloat() / videoHeight.toFloat()
-            val viewAspect : Float = pvPlayerView.width.toFloat() / pvPlayerView.height.toFloat()
+            val viewAspect : Float =
+                ivCurrentFrame.width.toFloat() / ivCurrentFrame.height.toFloat()
 
             Log.i("SelectedVideo", "Old view aspect: $viewAspect")
 
             if (videoAspect > viewAspect)
             {
                 // Width too large.
-                val newWidth = pvPlayerView.width
-                val newHeight = (pvPlayerView.width / videoAspect).roundToInt()
+                val newWidth = ivCurrentFrame.width
+                val newHeight = (ivCurrentFrame.width / videoAspect).roundToInt()
                 glSurfaceView.layoutParams = glSurfaceView.layoutParams.apply {
                     width = newWidth
                     height = newHeight
@@ -400,8 +245,8 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             else
             {
                 // Height too large.
-                val newWidth = (pvPlayerView.height * videoAspect).roundToInt()
-                val newHeight = pvPlayerView.height
+                val newWidth = (ivCurrentFrame.height * videoAspect).roundToInt()
+                val newHeight = ivCurrentFrame.height
                 glSurfaceView.layoutParams = glSurfaceView.layoutParams.apply {
                     width = newWidth
                     height = newHeight
@@ -412,8 +257,8 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             glSurfaceView.post {
                 val widthAfterLayout = glSurfaceView.width
                 val heightAfterLayout = glSurfaceView.height
-                val playerWidth = pvPlayerView.width
-                val playerHeight = pvPlayerView.height
+                val playerWidth = ivCurrentFrame.width
+                val playerHeight = ivCurrentFrame.height
                 Log.i(
                     "SelectedVideo",
                     "New size of glSurfaceView: $widthAfterLayout x $heightAfterLayout. \nSize of entire video player: $playerWidth x $playerHeight."
@@ -469,7 +314,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             val newProgressPercent = (i * 100.0 / numberOfFramesToDetect).toInt()
             if (newProgressPercent >= currentProgressPercent + 5)
             {
-                activity?.runOnUiThread {
+                fragmentActivity.runOnUiThread {
                     pbDetectionProgress.setProgress(currentProgressPercent, true)
                 }
                 currentProgressPercent = newProgressPercent
@@ -480,10 +325,9 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
         frameBitmapArray = frameBitmapList.toTypedArray()
         currentFrame = 0
         glRenderer.currentFrame = 0
-        activity?.runOnUiThread {
+        fragmentActivity.runOnUiThread {
             ivCurrentFrame.setImageBitmap(frameBitmapArray[0])
             ivCurrentFrame.visibility = View.VISIBLE
-            pvPlayerView.player?.seekTo(0)
         }
 
         val endTime = SystemClock.uptimeMillis()
@@ -493,7 +337,7 @@ class ExemplarVideoAnalysis : Fragment(R.layout.fragment_exemplar_video_analysis
             "Detection finished at $endTime. Time Taken: $timeTaken seconds."
         )
 
-        activity?.runOnUiThread {
+        fragmentActivity.runOnUiThread {
             ivCurrentFrame.setImageBitmap(frameBitmapList[0])
         }
 
