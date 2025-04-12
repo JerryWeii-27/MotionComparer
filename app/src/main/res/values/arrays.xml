@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Displayed in the list. -->
+    <string-array name="model_options">
+        <item>Lite</item>
+        <item>Full</item>
+        <item>Heavy</item>
+    </string-array>
+
+    <!-- Values saved in SharedPreferences. -->
+    <string-array name="model_names">
+        <item>pose_landmarker_lite.task</item>
+        <item>pose_landmarker_full.task</item>
+        <item>pose_landmarker_heavy.task</item>
+    </string-array>
+</resources>

@@ -45,7 +45,7 @@ class VideoAnalysis(
 {
     // Mediapipe pose landmarker.
     private var poseLandmarker : PoseLandmarker? = null
-    val modelName = "pose_landmarker_heavy.task"
+    val modelName = MainActivity.modelName
 
     // Image frames.
     var frameBitmapList : MutableList<Bitmap> = mutableListOf()
@@ -57,8 +57,7 @@ class VideoAnalysis(
     // Frame navigation.
     var frameStep : Int = 0
     var currentFrame : Int = 0
-    var sampleIntervalFrames : Int = 30
-
+    var sampleIntervalFrames : Int = MainActivity.sampleIntervalFrames
     // Video metadata.
     var frameDurationMS : Long? = null
     var totalDurationMS : Long? = null

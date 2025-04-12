@@ -6,18 +6,24 @@ import android.os.Looper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.example.googlemediapipetest.fragment.AppSettings
-import com.example.googlemediapipetest.fragment.CompareMotions
-import com.example.googlemediapipetest.VideoAnalysis
+import com.example.googlemediapipetest.fragment.AppSettingsFragment
+import com.example.googlemediapipetest.fragment.CompareMotionsFragment
 import com.example.googlemediapipetest.fragment.VideoAnalysisFragment
-import com.example.googlemediapipetest.fragment.YourVideoAnalysis
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity()
 {
     //    lateinit var tvTitle : TextView
+    companion object
+    {
+        var modelName : String = "pose_landmarker_heavy.task"
+        var sampleIntervalFrames : Int = 30
+    }
+
     val exemplarVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()
     val yourVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()
+    val compareMotionsFragment : CompareMotionsFragment = CompareMotionsFragment()
+    val appSettingsFragment : AppSettingsFragment = AppSettingsFragment()
 
     private val handler = Handler(Looper.getMainLooper())
     private val logRunnable = object : Runnable {
@@ -49,7 +55,11 @@ class MainActivity : AppCompatActivity()
             supportFragmentManager.beginTransaction()
                 .add(R.id.fcFragmentContainer, exemplarVideoAnalysisFragment)
                 .add(R.id.fcFragmentContainer, yourVideoAnalysisFragment)
+                .add(R.id.fcFragmentContainer, compareMotionsFragment)
+                .add(R.id.fcFragmentContainer, appSettingsFragment)
                 .hide(yourVideoAnalysisFragment)
+                .hide(compareMotionsFragment)
+                .hide(appSettingsFragment)
                 .commit()
 
 //            tvTitle.text = bottomNavigation.menu.findItem(bottomNavigation.selectedItemId).title
@@ -60,12 +70,11 @@ class MainActivity : AppCompatActivity()
             {
                 R.id.navExemplar -> switchFragment(exemplarVideoAnalysisFragment)
                 R.id.navYou -> switchFragment(yourVideoAnalysisFragment)
-                R.id.navCompare -> switchFragment(CompareMotions())
-                R.id.navSettings -> switchFragment(AppSettings())
+                R.id.navCompare -> switchFragment(compareMotionsFragment)
+                R.id.navSettings -> switchFragment(appSettingsFragment)
             }
 
 //            tvTitle.text = item.title
-
             true
         }
     }

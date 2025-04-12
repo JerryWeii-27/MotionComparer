@@ -1,14 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <SwitchPreferenceCompat
-        app:key="notifications"
-        app:title="Enable message notifications"/>
+    <PreferenceCategory android:title="Settings">
 
-    <Preference
-        app:key="feedback"
-        app:title="Send feedback"
-        app:summary="Report technical issues or suggest new features"/>
+        <ListPreference
+            app:defaultValue="pose_landmarker_lite.task"
+            app:dialogTitle="Select model"
+            app:entries="@array/model_options"
+            app:entryValues="@array/model_names"
+            app:key="model"
+            app:summary="Click to choose"
+            app:title="Pose recognition model" />
 
+        <SeekBarPreference
+            android:max="60"
+            app:defaultValue="50"
+            app:key="interval"
+            app:min="1"
+            android:summary="Sampling stride of the pose recognition model"
+            android:title="Sample interval"
+            app:showSeekBarValue="true"
+            android:layout="@layout/preference_seekbar_custom"/>
+
+
+    </PreferenceCategory>
 </PreferenceScreen>
