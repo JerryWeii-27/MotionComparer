@@ -62,9 +62,6 @@ dependencies {
     // https://mvnrepository.com/artifact/com.github.bumptech.glide/glide
     implementation(libs.glide)
 
-    // https://mvnrepository.com/artifact/com.google.android.exoplayer/exoplayer
-    implementation(libs.exoplayer)
-
     // https://mvnrepository.com/artifact/androidx.media/media
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)

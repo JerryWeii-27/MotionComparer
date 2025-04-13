@@ -29,6 +29,7 @@ class AppSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnShar
     private fun updateRequireRestartCompanionValues(sharedPreferences: SharedPreferences) {
         val model = sharedPreferences.getString("model", MainActivity.modelName)
         val interval = sharedPreferences.getInt("interval", MainActivity.sampleIntervalFrames)
+        val useGPU = sharedPreferences.getBoolean("useGPU", MainActivity.useGPU)
 
         if (model != null) {
             MainActivity.modelName = model
@@ -36,7 +37,11 @@ class AppSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnShar
 
         MainActivity.sampleIntervalFrames = interval
 
-        Log.i("UpdatedCompanion", "modelName = ${MainActivity.modelName}, sampleIntervalFrames = ${MainActivity.sampleIntervalFrames}.")
+        MainActivity.useGPU = useGPU
+
+        for (entry in sharedPreferences.all.entries) {
+            Log.d("Preferences", "Key: ${entry.key}, Value: ${entry.value}.")
+        }
     }
 
     override fun onResume() {

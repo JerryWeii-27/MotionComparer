@@ -18,6 +18,7 @@ class MainActivity : AppCompatActivity()
     {
         var modelName : String = "pose_landmarker_heavy.task"
         var sampleIntervalFrames : Int = 30
+        var useGPU : Boolean = false
     }
 
     val exemplarVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()

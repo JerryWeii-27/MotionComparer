@@ -7,7 +7,7 @@ import com.example.googlemediapipetest.Vector3
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class FlatSkeleton(renderer : GLRenderer) : GLObject(
+class FlatSkeleton(renderer : GLRenderer2D) : GLObject(
     renderer,
     R.raw.flat_vertex_shader,
     R.raw.flat_fragment_shader,
@@ -132,6 +132,7 @@ class FlatSkeleton(renderer : GLRenderer) : GLObject(
         GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[1])
 
         // Copy only the current frame's data to GPU.
+        buffer.clear()
         buffer.put(packedColorData, frameOffset, vertexCount * 3).position(0)
         GLES32.glBufferSubData(
             GLES32.GL_ARRAY_BUFFER,

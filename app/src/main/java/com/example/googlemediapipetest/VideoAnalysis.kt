@@ -8,14 +8,13 @@ import android.opengl.GLSurfaceView
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
-import com.example.googlemediapipetest.gles.GLRenderer
+import com.example.googlemediapipetest.gles.GLRenderer2D
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
@@ -36,7 +35,7 @@ class VideoAnalysis(
     val fragmentContext : Context,
     val fragmentActivity : FragmentActivity,
 
-    // Pass UI elements explicitly
+    // Pass UI elements explicitly.
     var ivCurrentFrame : ImageView,
     var etFrameStep : EditText,
     var pbDetectionProgress : ProgressBar,
@@ -52,7 +51,7 @@ class VideoAnalysis(
     lateinit var frameBitmapArray : Array<Bitmap>
 
     // Pose overlay.
-    lateinit var glRenderer : GLRenderer
+    lateinit var glRenderer2D : GLRenderer2D
 
     // Frame navigation.
     var frameStep : Int = 0
@@ -69,7 +68,7 @@ class VideoAnalysis(
 
     fun updateFrame(direction : Int)
     {
-        if (!glRenderer.flatSkeleton.allFramesAdded)
+        if (!glRenderer2D.flatSkeleton.allFramesAdded)
         {
             Log.e("VideoPlayer", "updateFrame: Not all frames added.")
             return
@@ -102,36 +101,11 @@ class VideoAnalysis(
             "VideoPlayer",
             "updateFrame: \nNew frame:$currentFrame. \nNew landmarks list index: ${currentFrame / sampleIntervalFrames} \nNew position in MS: ${currentFrame * frameDurationMS!!}. \nTotal frames: $totalFrames."
         )
-        glRenderer.currentFrame = currentFrame / sampleIntervalFrames
+        glRenderer2D.currentFrame = currentFrame / sampleIntervalFrames
 
 
         val bitmapIndex = currentFrame / sampleIntervalFrames
         ivCurrentFrame.setImageBitmap(frameBitmapArray[bitmapIndex])
-
-    }
-
-    fun initPoseLandmarker()
-    {
-        try
-        {
-            val baseOptionBuilder = BaseOptions.builder()
-            baseOptionBuilder.setDelegate(Delegate.CPU)
-            baseOptionBuilder.setModelAssetPath(modelName)
-
-            val baseOptions = baseOptionBuilder.build()
-
-            val optionsBuilder =
-                PoseLandmarker.PoseLandmarkerOptions.builder().setBaseOptions(baseOptions)
-                    .setMinPoseDetectionConfidence(0.5f).setMinTrackingConfidence(0.5f)
-                    .setMinPosePresenceConfidence(0.5f).setRunningMode(RunningMode.VIDEO)
-                    .setNumPoses(1)
-
-            val options = optionsBuilder.build()
-            poseLandmarker = PoseLandmarker.createFromOptions(fragmentContext, options)
-        } catch (e : RuntimeException)
-        {
-            Log.e("GPUDelegation", "GPU delegation error. $e")
-        }
     }
 
     fun openVideoPicker()
@@ -162,7 +136,7 @@ class VideoAnalysis(
 
             pbDetectionProgress.setProgress(0, true)
             frameBitmapList.clear()
-            glRenderer.flatSkeleton.allFramesAdded = false
+            glRenderer2D.flatSkeleton.allFramesAdded = false
 
             val videoPath = result[0].availablePath.toString().toUri()
             Log.i("MPDetectionProgress", "Selection made: $videoPath")
@@ -175,7 +149,7 @@ class VideoAnalysis(
                     glSurfaceView.queueEvent {
                         MPHelper.processResultBundle2D(
                             resultBundle,
-                            glRenderer
+                            glRenderer2D
                         )
                     }
                 }
@@ -188,9 +162,9 @@ class VideoAnalysis(
     }
 
     // Run on background thread.
-    private fun runDetectOnVideo(videoUri : Uri) : ResultBundle?
+    private fun runDetectOnVideo(videoUri : Uri) : MPHelper.ResultBundle?
     {
-        initPoseLandmarker()
+        poseLandmarker = MPHelper.initPoseLandmarker(modelName, fragmentContext)
         val startTime = SystemClock.uptimeMillis()
         Log.i("MPDetectionProgress", "runDetectOnVideo at $startTime")
 
@@ -209,7 +183,7 @@ class VideoAnalysis(
             frameDurationMS = (videoLengthMS.toDouble() / totalFrames.toDouble()).roundToLong()
             totalDurationMS = videoLengthMS
         }
-        glRenderer.sampleInterval = sampleIntervalFrames * frameDurationMS!!.toInt()
+        glRenderer2D.sampleInterval = sampleIntervalFrames * frameDurationMS!!.toInt()
 
         val firstFrame = retriever.getFrameAtTime(0)
 
@@ -322,8 +296,9 @@ class VideoAnalysis(
         retriever.release()
 
         frameBitmapArray = frameBitmapList.toTypedArray()
+        frameBitmapList.clear()
         currentFrame = 0
-        glRenderer.currentFrame = 0
+        glRenderer2D.currentFrame = 0
         fragmentActivity.runOnUiThread {
             ivCurrentFrame.setImageBitmap(frameBitmapArray[0])
             ivCurrentFrame.visibility = View.VISIBLE
@@ -340,7 +315,7 @@ class VideoAnalysis(
             ivCurrentFrame.setImageBitmap(frameBitmapList[0])
         }
 
-        return ResultBundle(
+        return MPHelper.ResultBundle(
             resultList,
             sampleIntervalFrames * frameDurationMS!!,
             videoHeight,

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.graphics.PixelFormat
 import android.opengl.GLSurfaceView
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import androidx.fragment.app.Fragment
 import android.view.View
@@ -16,11 +15,9 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import com.example.googlemediapipetest.R
 import com.example.googlemediapipetest.VideoAnalysis
-import com.example.googlemediapipetest.gles.GLRenderer
+import com.example.googlemediapipetest.gles.GLRenderer2D
 
 
 class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
@@ -66,7 +63,7 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
         ivCurrentFrame.isEnabled = true
         ivCurrentFrame.visibility = View.VISIBLE
 
-        videoAnalysis.glRenderer = GLRenderer(requireContext(), this)
+        videoAnalysis.glRenderer2D = GLRenderer2D(requireContext(), this)
 
         buttonNextFrame.setOnClickListener {
             videoAnalysis.updateFrame(1)
@@ -87,12 +84,12 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
         glSurfaceView.setZOrderOnTop(true)
 
 
-        glSurfaceView.setRenderer(videoAnalysis.glRenderer)
+        glSurfaceView.setRenderer(videoAnalysis.glRenderer2D)
 
-        @SuppressLint("ClickableViewAccessibility")
-        glSurfaceView.setOnTouchListener { _, event ->
-            videoAnalysis.glRenderer.onTouchEvent(event)
-        }
+//        @SuppressLint("ClickableViewAccessibility")
+//        glSurfaceView.setOnTouchListener { _, event ->
+//            videoAnalysis.glRenderer2D.onTouchEvent(event)
+//        }
     }
 
     // All view bindings here.
