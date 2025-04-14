@@ -1,8 +1,8 @@
-package com.example.googlemediapipetest
+package com.example.motioncomparer
 
 import android.content.Context
 import android.util.Log
-import com.example.googlemediapipetest.gles.GLRenderer2D
+import com.example.motioncomparer.gles.GLRenderer2D
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode

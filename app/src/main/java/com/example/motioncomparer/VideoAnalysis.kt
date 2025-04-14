@@ -1,4 +1,4 @@
-package com.example.googlemediapipetest
+package com.example.motioncomparer
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -14,11 +14,8 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
-import com.example.googlemediapipetest.gles.GLRenderer2D
+import com.example.motioncomparer.gles.GLRenderer2D
 import com.google.mediapipe.framework.image.BitmapImageBuilder
-import com.google.mediapipe.tasks.core.BaseOptions
-import com.google.mediapipe.tasks.core.Delegate
-import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import com.luck.picture.lib.basic.PictureSelector

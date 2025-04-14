@@ -1,11 +1,11 @@
-package com.example.googlemediapipetest.fragment
+package com.example.motioncomparer.fragment
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.example.googlemediapipetest.R
+import com.example.motioncomparer.R
 
 class CompareMotionsFragment : Fragment()
 {

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.googlemediapipetest"
+    namespace = "com.example.motioncomparer"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.googlemediapipetest"
+        applicationId = "com.example.motioncomparer"
         minSdk = 28
         targetSdk = 35
         versionCode = 1

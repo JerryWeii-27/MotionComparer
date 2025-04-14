@@ -1,4 +1,4 @@
-package com.example.googlemediapipetest
+package com.example.motioncomparer
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,6 +21,6 @@ class ExampleInstrumentedTest
     {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.example.googlemediapipetest", appContext.packageName)
+        assertEquals("com.example.motioncomparer", appContext.packageName)
     }
 }

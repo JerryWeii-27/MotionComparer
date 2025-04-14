@@ -1,4 +1,4 @@
-package com.example.googlemediapipetest
+package com.example.motioncomparer
 
 import android.graphics.Bitmap
 import androidx.core.graphics.scale

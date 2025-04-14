@@ -1,6 +1,5 @@
-package com.example.googlemediapipetest.fragment
+package com.example.motioncomparer.fragment
 
-import android.annotation.SuppressLint
 import android.graphics.PixelFormat
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -15,9 +14,9 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.googlemediapipetest.R
-import com.example.googlemediapipetest.VideoAnalysis
-import com.example.googlemediapipetest.gles.GLRenderer2D
+import com.example.motioncomparer.R
+import com.example.motioncomparer.VideoAnalysis
+import com.example.motioncomparer.gles.GLRenderer2D
 
 
 class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)

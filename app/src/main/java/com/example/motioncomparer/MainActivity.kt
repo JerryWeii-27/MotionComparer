@@ -1,4 +1,4 @@
-package com.example.googlemediapipetest
+package com.example.motioncomparer
 
 import android.os.Bundle
 import android.os.Handler
@@ -6,9 +6,9 @@ import android.os.Looper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.example.googlemediapipetest.fragment.AppSettingsFragment
-import com.example.googlemediapipetest.fragment.CompareMotionsFragment
-import com.example.googlemediapipetest.fragment.VideoAnalysisFragment
+import com.example.motioncomparer.fragment.AppSettingsFragment
+import com.example.motioncomparer.fragment.CompareMotionsFragment
+import com.example.motioncomparer.fragment.VideoAnalysisFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity()

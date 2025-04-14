@@ -1,9 +1,9 @@
-package com.example.googlemediapipetest.gles
+package com.example.motioncomparer.gles
 
 import android.opengl.GLES32
 import android.util.Log
-import com.example.googlemediapipetest.R
-import com.example.googlemediapipetest.Vector3
+import com.example.motioncomparer.R
+import com.example.motioncomparer.Vector3
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 

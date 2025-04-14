@@ -1,21 +1,12 @@
-package com.example.googlemediapipetest.gles
+package com.example.motioncomparer.gles
 
 import android.content.Context
 import android.opengl.GLES32
 import android.opengl.GLSurfaceView
-import android.opengl.Matrix
 import android.util.Log
-import android.view.MotionEvent
-import com.example.googlemediapipetest.R
-import com.example.googlemediapipetest.fragment.VideoAnalysisFragment
+import com.example.motioncomparer.fragment.VideoAnalysisFragment
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
-import kotlin.math.tan
 
 class GLRenderer2D(private val context : Context, val fragment : VideoAnalysisFragment) :
     GLSurfaceView.Renderer

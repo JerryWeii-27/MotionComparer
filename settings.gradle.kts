@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GoogleMediaPipeTest"
+rootProject.name = "MotionComparer"
 include(":app")

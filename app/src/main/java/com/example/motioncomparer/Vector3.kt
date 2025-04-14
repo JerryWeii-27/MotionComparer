@@ -1,4 +1,4 @@
-package com.example.googlemediapipetest
+package com.example.motioncomparer
 
 import kotlin.math.sqrt
 

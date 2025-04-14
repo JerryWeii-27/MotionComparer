@@ -1,11 +1,11 @@
-package com.example.googlemediapipetest.fragment
+package com.example.motioncomparer.fragment
 
 import android.os.Bundle
 import android.util.Log
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
-import com.example.googlemediapipetest.MainActivity
-import com.example.googlemediapipetest.R
+import com.example.motioncomparer.MainActivity
+import com.example.motioncomparer.R
 import android.content.SharedPreferences
 
 class AppSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedPreferenceChangeListener {

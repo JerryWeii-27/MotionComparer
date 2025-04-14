@@ -1,4 +1,4 @@
-package com.example.googlemediapipetest.gles
+package com.example.motioncomparer.gles
 
 import android.opengl.GLES32
 import java.nio.ByteBuffer
