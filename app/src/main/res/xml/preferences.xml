@@ -14,23 +14,30 @@
             app:title="Pose recognition model" />
 
         <SeekBarPreference
+            android:layout="@layout/preference_seekbar_custom"
             android:max="60"
             app:defaultValue="50"
             app:key="interval"
             app:min="1"
-            app:summary="Sampling stride of the pose recognition model"
-            app:title="Sample interval"
             app:showSeekBarValue="true"
-            android:layout="@layout/preference_seekbar_custom"/>
+            app:summary="Sampling stride of the pose recognition model"
+            app:title="Sample interval" />
 
         <SwitchPreferenceCompat
-            app:key="useGPU"
             app:defaultValue="false"
-            app:title="Use GPU"
+            app:key="useGPU"
             app:summary="Delegate pose recognition to GPU when turned on"
+            app:title="Use GPU" />
 
-            />
+
+    </PreferenceCategory>
 
 
+    <PreferenceCategory android:title="Settings (Don't Require Restart)">
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:key="forceSameAspect"
+            app:summary="When turned on, two videos must have the same aspect ratio."
+            app:title="Force same aspect ratio" />
     </PreferenceCategory>
 </PreferenceScreen>

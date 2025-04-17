@@ -62,7 +62,7 @@
         android:minWidth="48dp"
         android:minHeight="48dp"
         android:padding="16dp"
-        android:background="#E91E63"
+        android:background="@color/crimson"
         android:src="@drawable/arrow_forward_24dp_ffffff_fill0_wght400_grad0_opsz24"
         app:layout_constraintBottom_toTopOf="@+id/ivCurrentFrame"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -77,7 +77,7 @@
         android:minWidth="48dp"
         android:minHeight="48dp"
         android:padding="16dp"
-        android:background="#03A9F4"
+        android:background="@color/blue"
         android:src="@drawable/arrow_back_24dp_ffffff_fill0_wght400_grad0_opsz24"
         app:layout_constraintBottom_toTopOf="@+id/ivCurrentFrame"
         app:layout_constraintStart_toStartOf="parent" />

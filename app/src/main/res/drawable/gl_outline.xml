@@ -4,7 +4,7 @@
 
     <stroke
         android:width="4dp"
-    android:color="#FF0000" /> <!-- Border color -->
+    android:color="@color/pure_red" /> <!-- Border color -->
 
     <!-- Make the inside completely transparent -->
     <solid android:color="@android:color/transparent" />

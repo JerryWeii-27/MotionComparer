@@ -13,8 +13,8 @@ class GLRenderer2D(private val context : Context, val fragment : VideoAnalysisFr
 {
     // Objects.
     lateinit var flatSkeleton : FlatSkeleton
+    val glObjects : MutableList<GLObject> = mutableListOf()
     var currentFrame : Int = 0
-    var totalDeltaTimeFromLastFrameMS = 0
     var sampleInterval = 0;
 
     // Window info.

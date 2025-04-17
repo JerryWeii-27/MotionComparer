@@ -23,6 +23,7 @@ import com.luck.picture.lib.config.SelectMimeType
 import com.luck.picture.lib.entity.LocalMedia
 import com.luck.picture.lib.interfaces.OnResultCallbackListener
 import java.util.ArrayList
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import kotlin.math.roundToInt
@@ -54,6 +55,7 @@ class VideoAnalysis(
     var frameStep : Int = 0
     var currentFrame : Int = 0
     var sampleIntervalFrames : Int = MainActivity.sampleIntervalFrames
+
     // Video metadata.
     var frameDurationMS : Long? = null
     var totalDurationMS : Long? = null
@@ -194,49 +196,95 @@ class VideoAnalysis(
         videoHeight = firstFrame.height
         Log.i("SelectedVideo", "Width: $videoWidth, height: $videoHeight.")
 
-        fragmentActivity.runOnUiThread {
-            val videoAspect : Float = videoWidth.toFloat() / videoHeight.toFloat()
-            val viewAspect : Float =
-                ivCurrentFrame.width.toFloat() / ivCurrentFrame.height.toFloat()
+        try
+        {
+            var noError : Boolean = true
+            val latch = CountDownLatch(1)
 
-            Log.i("SelectedVideo", "Old view aspect: $viewAspect")
+            fragmentActivity.runOnUiThread {
+                val videoAspect : Float = videoWidth.toFloat() / videoHeight.toFloat()
+                val viewAspect : Float =
+                    ivCurrentFrame.width.toFloat() / ivCurrentFrame.height.toFloat()
 
-            if (videoAspect > viewAspect)
-            {
-                // Width too large.
-                val newWidth = ivCurrentFrame.width
-                val newHeight = (ivCurrentFrame.width / videoAspect).roundToInt()
+                Log.i("SelectedVideo", "Old view aspect: $viewAspect")
+
+                var newWidth : Int = 0
+                var newHeight : Int = 0
+
+                if (videoAspect > viewAspect)
+                {
+                    // Width too large.
+                    newWidth = ivCurrentFrame.width
+                    newHeight = (ivCurrentFrame.width / videoAspect).roundToInt()
+                }
+                else
+                {
+                    // Height too large.
+                    newWidth = (ivCurrentFrame.height * videoAspect).roundToInt()
+                    newHeight = ivCurrentFrame.height
+                }
+
+                if ((MainActivity.glSurfaceViewWidth != 0 && MainActivity.glSurfaceViewWidth != newWidth)
+                    || (MainActivity.glSurfaceViewHeight != 0 && MainActivity.glSurfaceViewHeight != newHeight)
+                )
+                {
+                    Log.e("SelectedVideo", "Video has different aspect ratio.")
+                    noError = false
+
+                    if (MainActivity.forceSameAspectRatio)
+                    {
+                        latch.countDown()
+                        return@runOnUiThread
+                    }
+                }
+
                 glSurfaceView.layoutParams = glSurfaceView.layoutParams.apply {
                     width = newWidth
                     height = newHeight
                 }
+
+                MainActivity.glSurfaceViewWidth = newWidth
+                MainActivity.glSurfaceViewHeight = newHeight
+
                 glSurfaceView.requestLayout()
-            }
-            else
-            {
-                // Height too large.
-                val newWidth = (ivCurrentFrame.height * videoAspect).roundToInt()
-                val newHeight = ivCurrentFrame.height
-                glSurfaceView.layoutParams = glSurfaceView.layoutParams.apply {
-                    width = newWidth
-                    height = newHeight
+
+                glSurfaceView.post {
+                    val widthAfterLayout = glSurfaceView.width
+                    val heightAfterLayout = glSurfaceView.height
+                    val playerWidth = ivCurrentFrame.width
+                    val playerHeight = ivCurrentFrame.height
+
+                    Log.i(
+                        "SelectedVideo",
+                        "New size of glSurfaceView: $widthAfterLayout x $heightAfterLayout. \nSize of entire video player: $playerWidth x $playerHeight."
+                    )
+                    Log.i(
+                        "SelectedVideo",
+                        "Video aspect: $videoAspect. New view aspect: ${glSurfaceView.width.toFloat() / glSurfaceView.height.toFloat()}."
+                    )
                 }
-                glSurfaceView.requestLayout()
+                latch.countDown()
             }
 
-            glSurfaceView.post {
-                val widthAfterLayout = glSurfaceView.width
-                val heightAfterLayout = glSurfaceView.height
-                val playerWidth = ivCurrentFrame.width
-                val playerHeight = ivCurrentFrame.height
-                Log.i(
-                    "SelectedVideo",
-                    "New size of glSurfaceView: $widthAfterLayout x $heightAfterLayout. \nSize of entire video player: $playerWidth x $playerHeight."
-                )
-                Log.i(
-                    "SelectedVideo",
-                    "Video aspect: $videoAspect. New view aspect: ${glSurfaceView.width.toFloat() / glSurfaceView.height.toFloat()}."
-                )
+            latch.await() // Wait for the UI thread to finish.
+            if (!noError)
+            {
+                throw RuntimeException("Video has different aspect ratio.")
+            }
+        } catch (e : RuntimeException)
+        {
+            fragmentActivity.runOnUiThread {
+                Toast.makeText(
+                    fragmentContext,
+                    "Select a video with the same aspect ratio as the other video!",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+
+            if (MainActivity.forceSameAspectRatio)
+            {
+                Log.e("SelectedVideo", "runDetectOnVideo: Returning null.")
+                return null
             }
         }
 
@@ -261,14 +309,14 @@ class VideoAnalysis(
 
                     val scaledFrame = BitmapHelper.scaleBitmap(frame, 1280, 1280)
 
-                    // Convert to ARGB_8888 if needed
+                    // Convert to ARGB_8888.
                     val argb8888Frame =
                         if (scaledFrame.config == Bitmap.Config.ARGB_8888) scaledFrame
                         else scaledFrame.copy(Bitmap.Config.ARGB_8888, false)
 
                     frameBitmapList.add(argb8888Frame)
 
-                    // Convert to MPImage for MediaPipe
+                    // Convert to MPImage for MediaPipe.
                     val mpImage = BitmapImageBuilder(argb8888Frame).build()
 
                     Log.i("MPDetectionProgress", "runDetectOnVideo: Calling poseLandmarker.")
@@ -292,6 +340,10 @@ class VideoAnalysis(
         }
         retriever.release()
 
+        fragmentActivity.runOnUiThread {
+            pbDetectionProgress.setProgress(100, true)
+        }
+
         frameBitmapArray = frameBitmapList.toTypedArray()
         frameBitmapList.clear()
         currentFrame = 0
@@ -309,7 +361,7 @@ class VideoAnalysis(
         )
 
         fragmentActivity.runOnUiThread {
-            ivCurrentFrame.setImageBitmap(frameBitmapList[0])
+            ivCurrentFrame.setImageBitmap(frameBitmapArray[0])
         }
 
         return MPHelper.ResultBundle(

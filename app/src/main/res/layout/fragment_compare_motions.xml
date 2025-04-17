@@ -1,14 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".fragment.CompareMotionsFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+    <ImageButton
+        android:id="@+id/ibPrevFrame"
+        android:layout_width="64dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="48dp"
+        android:contentDescription="buttonPrevFrame"
+        android:minWidth="48dp"
+        android:minHeight="48dp"
+        android:background="@color/blue"
+        android:src="@drawable/arrow_back_24dp_ffffff_fill0_wght400_grad0_opsz24"
+        app:layout_constraintBottom_toBottomOf="@+id/etFrameStep"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/etFrameStep" />
 
-</FrameLayout>
+    <ImageButton
+        android:id="@+id/ibNextFrame"
+        android:layout_width="64dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="48dp"
+        android:contentDescription="buttonNextFrame"
+        android:minWidth="48dp"
+        android:minHeight="48dp"
+        android:background="@color/crimson"
+        android:src="@drawable/arrow_forward_24dp_ffffff_fill0_wght400_grad0_opsz24"
+        app:layout_constraintBottom_toBottomOf="@+id/etFrameStep"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/etFrameStep" />
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/glSurfaceView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/gl_outline"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/etFrameStep" />
+
+    <EditText
+        android:id="@+id/etFrameStep"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ems="6"
+        android:gravity="center"
+        android:hint="Enter Step"
+        android:inputType="number"
+        android:minWidth="64dp"
+        android:minHeight="48dp"
+        android:padding="16dp"
+        app:layout_constraintEnd_toStartOf="@+id/ibNextFrame"
+        app:layout_constraintStart_toEndOf="@+id/ibPrevFrame"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/buttonPickFirstVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:backgroundTint="@color/orange"
+        android:text="Video 1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/glSurfaceView" />
+
+    <Button
+        android:id="@+id/buttonPickSecondVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/green"
+        android:text="Video 2"
+        app:layout_constraintEnd_toEndOf="@+id/buttonPickFirstVideo"
+        app:layout_constraintTop_toBottomOf="@+id/buttonPickFirstVideo" />
+</androidx.constraintlayout.widget.ConstraintLayout>

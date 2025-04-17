@@ -18,15 +18,17 @@ class AppSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnShar
         prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
 
         // Set initial values to match current preferences.
-        updateRequireRestartCompanionValues(prefs)
+        updateRequireRestartSettings(prefs)
+        updateSimpleSettings(prefs)
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
         Log.i("Preferences", "$key -> ${sharedPreferences.all[key]}.")
 //        updateRequireRestartCompanionValues(sharedPreferences)
+        updateSimpleSettings(sharedPreferences)
     }
 
-    private fun updateRequireRestartCompanionValues(sharedPreferences: SharedPreferences) {
+    private fun updateRequireRestartSettings(sharedPreferences: SharedPreferences) {
         val model = sharedPreferences.getString("model", MainActivity.modelName)
         val interval = sharedPreferences.getInt("interval", MainActivity.sampleIntervalFrames)
         val useGPU = sharedPreferences.getBoolean("useGPU", MainActivity.useGPU)
@@ -42,6 +44,12 @@ class AppSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnShar
         for (entry in sharedPreferences.all.entries) {
             Log.d("Preferences", "Key: ${entry.key}, Value: ${entry.value}.")
         }
+    }
+
+    private fun updateSimpleSettings(sharedPreferences: SharedPreferences)
+    {
+        val forceSameAspectRatio = sharedPreferences.getBoolean("forceSameAspect", MainActivity.forceSameAspectRatio)
+        MainActivity.forceSameAspectRatio = forceSameAspectRatio
     }
 
     override fun onResume() {
