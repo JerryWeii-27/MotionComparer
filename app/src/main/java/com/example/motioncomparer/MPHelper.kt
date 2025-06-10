@@ -15,6 +15,7 @@ class MPHelper
     {
         fun initPoseLandmarker(modelName : String, fragmentContext : Context) : PoseLandmarker?
         {
+            Log.i("MPInit", "initPoseLandmarker: Starting MP init.")
             val poseLandmarker : PoseLandmarker
             try
             {

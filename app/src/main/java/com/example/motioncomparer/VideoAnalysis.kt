@@ -142,7 +142,25 @@ class VideoAnalysis(
 
             backgroundExecutor = Executors.newSingleThreadScheduledExecutor()
             backgroundExecutor.execute {
-                val resultBundle = runDetectOnVideo(videoPath) ?: return@execute
+                Log.i("MPDetectionProgress", "Starting background executor.")
+                val resultBundle = try
+                {
+                    runDetectOnVideo(videoPath) ?: run {
+                        Log.e("MPDetectionProgress", "Detection returned null results")
+                        return@execute
+                    }
+                }
+                catch (e : Exception)
+                {
+                    Log.e("MPDetectionProgress", "Error during video detection", e)
+                    fragmentActivity.runOnUiThread {
+                        Log.e("MPDetectionProgress", "")
+                    }
+                    return@execute
+                }
+
+                Log.i("MPDetectionProgress", resultBundle.resultsList[0].landmarks().toString())
+
                 fragmentActivity.runOnUiThread {
                     Log.i("MPDetectionProgress", "Running UI thread code.")
                     glSurfaceView.queueEvent {
@@ -271,7 +289,8 @@ class VideoAnalysis(
             {
                 throw RuntimeException("Video has different aspect ratio.")
             }
-        } catch (e : RuntimeException)
+        }
+        catch (e : RuntimeException)
         {
             fragmentActivity.runOnUiThread {
                 Toast.makeText(
