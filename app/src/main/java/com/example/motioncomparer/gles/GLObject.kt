@@ -6,7 +6,7 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 open class GLObject(
-    val renderer : GLRenderer2D,
+    val renderer : SingleSkeletonRenderer,
     val vertexShaderResID : Int,
     val fragmentShaderResID : Int,
     val objectDrawMode : Int
@@ -28,7 +28,6 @@ open class GLObject(
     init
     {
         GLES32.glGenBuffers(buffers.size, buffers, 0)
-        renderer.glObjects.add(this)
     }
 
     public fun setVertices(newVertices : FloatArray)

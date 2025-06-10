@@ -14,7 +14,7 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
-import com.example.motioncomparer.gles.GLRenderer2D
+import com.example.motioncomparer.gles.SingleSkeletonRenderer
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
@@ -49,7 +49,7 @@ class VideoAnalysis(
     lateinit var frameBitmapArray : Array<Bitmap>
 
     // Pose overlay.
-    lateinit var glRenderer2D : GLRenderer2D
+    lateinit var singleSkeletonRenderer : SingleSkeletonRenderer
     var flatSkeletonIndex : Int = -1
 
     // Frame navigation.
@@ -68,7 +68,7 @@ class VideoAnalysis(
 
     fun updateFrame(direction : Int)
     {
-        if (!glRenderer2D.flatSkeleton.allFramesAdded)
+        if (!singleSkeletonRenderer.flatSkeleton.allFramesAdded)
         {
             Log.e("VideoPlayer", "updateFrame: Not all frames added.")
             return
@@ -108,8 +108,7 @@ class VideoAnalysis(
         )
 
         // Change this to a FlatSkeleton object specific currentFrame.
-        glRenderer2D.currentFrame = currentFrame / sampleIntervalFrames
-        glRenderer2D.glObjects[flatSkeletonIndex].currentFrame = currentFrame / sampleIntervalFrames
+        singleSkeletonRenderer.currentFrame = currentFrame / sampleIntervalFrames
 
 
         val bitmapIndex = currentFrame / sampleIntervalFrames
@@ -144,7 +143,7 @@ class VideoAnalysis(
 
             pbDetectionProgress.setProgress(0, true)
             frameBitmapList.clear()
-            glRenderer2D.flatSkeleton.allFramesAdded = false
+            singleSkeletonRenderer.flatSkeleton.allFramesAdded = false
 
             val videoPath = result[0].availablePath.toString().toUri()
             Log.i("MPDetectionProgress", "Selection made: $videoPath")
@@ -175,7 +174,7 @@ class VideoAnalysis(
                     glSurfaceView.queueEvent {
                         flatSkeletonIndex = MPHelper.processResultBundle2D(
                             resultBundle,
-                            glRenderer2D
+                            singleSkeletonRenderer
                         )
                     }
                 }
@@ -209,7 +208,7 @@ class VideoAnalysis(
             frameDurationMS = (videoLengthMS.toDouble() / totalFrames.toDouble()).roundToLong()
             totalDurationMS = videoLengthMS
         }
-        glRenderer2D.sampleInterval = sampleIntervalFrames * frameDurationMS!!.toInt()
+        singleSkeletonRenderer.sampleInterval = sampleIntervalFrames * frameDurationMS!!.toInt()
 
         val firstFrame = retriever.getFrameAtTime(0)
 
@@ -375,7 +374,7 @@ class VideoAnalysis(
         frameBitmapArray = frameBitmapList.toTypedArray()
         frameBitmapList.clear()
         currentFrame = 0
-        glRenderer2D.currentFrame = 0
+        singleSkeletonRenderer.currentFrame = 0
         fragmentActivity.runOnUiThread {
             ivCurrentFrame.setImageBitmap(frameBitmapArray[0])
             ivCurrentFrame.visibility = View.VISIBLE

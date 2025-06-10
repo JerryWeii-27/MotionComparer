@@ -8,12 +8,11 @@ import com.example.motioncomparer.fragment.VideoAnalysisFragment
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class GLRenderer2D(private val context : Context, val fragment : VideoAnalysisFragment) :
+class SingleSkeletonRenderer(private val context : Context, val fragment : VideoAnalysisFragment) :
     GLSurfaceView.Renderer
 {
     // Objects.
     lateinit var flatSkeleton : FlatSkeleton
-    val glObjects : MutableList<GLObject> = mutableListOf()
     var currentFrame : Int = 0
     var sampleInterval = 0
 
@@ -66,16 +65,7 @@ class GLRenderer2D(private val context : Context, val fragment : VideoAnalysisFr
             return
         }
 
-        // Update deltaTime.
-
-        // Clear buffers at start of each frame.
-
-        for (glObject in glObjects)
-        {
-            glObject.drawObjectAtFrame(glObject.currentFrame)
-        }
-
-//        drawFlatSkeleton()
+        drawFlatSkeleton()
     }
 
     fun drawFlatSkeleton()

@@ -7,7 +7,7 @@ import com.example.motioncomparer.Vector3
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class FlatSkeleton(renderer : GLRenderer2D) : GLObject(
+class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
     renderer,
     R.raw.flat_vertex_shader,
     R.raw.flat_fragment_shader,

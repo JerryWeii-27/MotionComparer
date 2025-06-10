@@ -16,7 +16,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.motioncomparer.R
 import com.example.motioncomparer.VideoAnalysis
-import com.example.motioncomparer.gles.GLRenderer2D
+import com.example.motioncomparer.gles.SingleSkeletonRenderer
 
 
 class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
@@ -62,7 +62,7 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
         ivCurrentFrame.isEnabled = true
         ivCurrentFrame.visibility = View.VISIBLE
 
-        videoAnalysis.glRenderer2D = GLRenderer2D(requireContext(), this)
+        videoAnalysis.singleSkeletonRenderer = SingleSkeletonRenderer(requireContext(), this)
 
         buttonNextFrame.setOnClickListener {
             videoAnalysis.updateFrame(1)
@@ -83,7 +83,7 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
         glSurfaceView.setZOrderOnTop(true)
 
 
-        glSurfaceView.setRenderer(videoAnalysis.glRenderer2D)
+        glSurfaceView.setRenderer(videoAnalysis.singleSkeletonRenderer)
 
 //        @SuppressLint("ClickableViewAccessibility")
 //        glSurfaceView.setOnTouchListener { _, event ->
