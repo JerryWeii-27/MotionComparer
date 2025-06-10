@@ -58,8 +58,14 @@ class FlatSkeleton(renderer : GLRenderer2D) : GLObject(
 
     override fun drawObjectAtFrame(frame : Int)
     {
+        if (!allFramesAdded)
+        {
+            return
+        }
+
         GLES32.glUseProgram(program)
-        Log.i("OpenGLDrawFrame", "drawObjectAtFrame: Drawing humanModel")
+        Log.i("OpenGLDrawFrame", "drawObjectAtFrame: Drawing humanModel at frame $frame.")
+        currentFrame = frame
 
         if (frame != lastFrame)
         {

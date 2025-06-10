@@ -15,7 +15,7 @@ class GLRenderer2D(private val context : Context, val fragment : VideoAnalysisFr
     lateinit var flatSkeleton : FlatSkeleton
     val glObjects : MutableList<GLObject> = mutableListOf()
     var currentFrame : Int = 0
-    var sampleInterval = 0;
+    var sampleInterval = 0
 
     // Window info.
     var windowWidth : Float = 1.0f
@@ -70,16 +70,19 @@ class GLRenderer2D(private val context : Context, val fragment : VideoAnalysisFr
 
         // Clear buffers at start of each frame.
 
-        drawFlatSkeleton()
+        for (glObject in glObjects)
+        {
+            glObject.drawObjectAtFrame(glObject.currentFrame)
+        }
+
+//        drawFlatSkeleton()
     }
 
     fun drawFlatSkeleton()
     {
         // Update flat skeleton according to user's actions.
 //        Log.i("OpenGL", "onDrawFrame: $currentFrame. \nDrawing is ${flatSkeleton.allFramesAdded}.")
-        if (flatSkeleton.allFramesAdded)
-        {
-            flatSkeleton.drawObjectAtFrame(currentFrame)
-        }
+        flatSkeleton.drawObjectAtFrame(currentFrame)
+
     }
 }

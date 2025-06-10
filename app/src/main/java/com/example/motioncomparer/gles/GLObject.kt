@@ -23,6 +23,8 @@ open class GLObject(
 
     var program = GLHelper.createProgram(vertexShaderResID, fragmentShaderResID)
 
+    var currentFrame = 0;
+
     init
     {
         GLES32.glGenBuffers(buffers.size, buffers, 0)

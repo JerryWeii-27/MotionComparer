@@ -50,6 +50,7 @@ class VideoAnalysis(
 
     // Pose overlay.
     lateinit var glRenderer2D : GLRenderer2D
+    var flatSkeletonIndex : Int = -1
 
     // Frame navigation.
     var frameStep : Int = 0
@@ -71,6 +72,11 @@ class VideoAnalysis(
         {
             Log.e("VideoPlayer", "updateFrame: Not all frames added.")
             return
+        }
+
+        if (flatSkeletonIndex == -1)
+        {
+            Log.e("VideoPlayer", "updateFrame: FlatSkeleton index not assigned.")
         }
 
         frameStep = etFrameStep.text.toString().toIntOrNull() ?: frameStep
@@ -100,7 +106,10 @@ class VideoAnalysis(
             "VideoPlayer",
             "updateFrame: \nNew frame:$currentFrame. \nNew landmarks list index: ${currentFrame / sampleIntervalFrames} \nNew position in MS: ${currentFrame * frameDurationMS!!}. \nTotal frames: $totalFrames."
         )
+
+        // Change this to a FlatSkeleton object specific currentFrame.
         glRenderer2D.currentFrame = currentFrame / sampleIntervalFrames
+        glRenderer2D.glObjects[flatSkeletonIndex].currentFrame = currentFrame / sampleIntervalFrames
 
 
         val bitmapIndex = currentFrame / sampleIntervalFrames
@@ -164,7 +173,7 @@ class VideoAnalysis(
                 fragmentActivity.runOnUiThread {
                     Log.i("MPDetectionProgress", "Running UI thread code.")
                     glSurfaceView.queueEvent {
-                        MPHelper.processResultBundle2D(
+                        flatSkeletonIndex = MPHelper.processResultBundle2D(
                             resultBundle,
                             glRenderer2D
                         )

@@ -41,7 +41,7 @@ class MPHelper
             return null
         }
 
-        fun processResultBundle2D(resultBundle : ResultBundle, glRenderer2D : GLRenderer2D)
+        fun processResultBundle2D(resultBundle : ResultBundle, glRenderer2D : GLRenderer2D) : Int
         {
             Log.i("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
             // Go through every frame in result bundle.
@@ -66,6 +66,9 @@ class MPHelper
 
             glRenderer2D.flatSkeleton.bindVBO()
             glRenderer2D.flatSkeleton.allFramesAdded = true
+
+            // Returns the index of the flatSkeleton in glObject list.
+            return glRenderer2D.glObjects.size - 1
         }
 
         fun camSpaceLandmarksToVec3Arr(result : PoseLandmarkerResult) : Array<Vector3>
