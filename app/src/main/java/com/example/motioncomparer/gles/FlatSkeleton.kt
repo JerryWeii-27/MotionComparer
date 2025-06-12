@@ -1,14 +1,15 @@
 package com.example.motioncomparer.gles
 
+import android.opengl.EGL14
 import android.opengl.GLES32
 import android.util.Log
+import com.example.motioncomparer.MainActivity
 import com.example.motioncomparer.R
 import com.example.motioncomparer.Vector3
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
-    renderer,
+class FlatSkeleton() : GLObject(
     R.raw.flat_vertex_shader,
     R.raw.flat_fragment_shader,
     GLES32.GL_TRIANGLES
@@ -16,6 +17,8 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
 {
     public lateinit var packedPositionData : FloatArray
     public lateinit var packedColorData : FloatArray
+
+    public var currentAlpha : Float = 0.6f
 
     public var totalFrames : Int = 0
     var lastFrame : Int = -1
@@ -29,7 +32,9 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
     private val colorsList = mutableListOf<Vector3>()
 
     // 2D flat skeleton settings.
-    val limbsKiteWidthOverLength : Float = 0.2f
+    var limbsKiteWidthOverLength : Float = 0.2f
+
+    var videoType : Int = -1;
 
     public fun bindVBO()
     {
@@ -58,13 +63,18 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
 
     override fun drawObjectAtFrame(frame : Int)
     {
+        val currentContext = EGL14.eglGetCurrentContext()
+        Log.d("GL_CONTEXT", "Context handle: ${currentContext.hashCode()}")
+        Log.i("OpenGLDrawFrame", "drawObjectAtFrame: Drawing humanModel at frame $frame.")
         if (!allFramesAdded)
         {
+            Log.i("OpenGLDrawFrame", "drawObjectAtFrame: Not all frames added.")
             return
         }
+        bindVBO()
 
         GLES32.glUseProgram(program)
-        Log.i("OpenGLDrawFrame", "drawObjectAtFrame: Drawing humanModel at frame $frame.")
+        Log.i("OpenGLDrawFrame", "drawObjectAtFrame: Using program: $program.")
         currentFrame = frame
 
         if (frame != lastFrame)
@@ -86,7 +96,7 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
             0
         )
 
-        // Normal buffer.
+        // Color buffer.
         GLES32.glBindBuffer(GLES32.GL_ARRAY_BUFFER, buffers[1])
         val colorHandle = GLES32.glGetAttribLocation(program, "vColor")
         GLES32.glEnableVertexAttribArray(colorHandle)
@@ -99,6 +109,21 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
             0
         )
 
+        val alphaHandle = GLES32.glGetUniformLocation(program, "uAlpha")
+        GLES32.glUniform1f(alphaHandle, currentAlpha)
+
+        val secondColorHandle = GLES32.glGetUniformLocation(program, "useSecondColor")
+        if (MainActivity.sameColor)
+        {
+            GLES32.glUniform1i(secondColorHandle, 0)
+        }
+        else
+        {
+            GLES32.glUniform1i(secondColorHandle, videoType)
+        }
+
+        val zPosHandle = GLES32.glGetUniformLocation(program, "zPosition")
+
         GLES32.glDrawArrays(GLES32.GL_TRIANGLES, 0, vertexCount)
 
         GLES32.glDisableVertexAttribArray(positionHandle)
@@ -108,7 +133,10 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
 
     fun updateVBOs(frameInAnimationData : Int)
     {
-        Log.i("OpenGL", "FlatSkeleton updateVBOs: $frameInAnimationData out of $totalFrames frames.")
+        Log.i(
+            "OpenGL",
+            "FlatSkeleton updateVBOs: $frameInAnimationData out of $totalFrames frames."
+        )
         require(frameInAnimationData in 0 until totalFrames)
 
         // Calculate offset in packedAnimationData.
@@ -225,7 +253,7 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
             for (i in 0..2)
             {
                 trianglesList.add(Vector3(10000f, 10000f, 10000f))
-                colorsList.add(Vector3(0f,0f,0f))
+                colorsList.add(Vector3(0f, 0f, 0f))
             }
             return
         }
@@ -248,7 +276,7 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
             for (i in 0..5)
             {
                 trianglesList.add(Vector3(10000f, 10000f, 10000f))
-                colorsList.add(Vector3(0f,0f,0f))
+                colorsList.add(Vector3(0f, 0f, 0f))
             }
             return
         }
@@ -276,7 +304,7 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
         trianglesList.add(p4)
         trianglesList.add(p2)
 
-        val color = getSeededColor(start, end)
+        val color = getSeededColor(start * end, end + start)
         for (i in 0..5)
         {
             colorsList.add(color)
@@ -285,16 +313,38 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
 
     fun getSeededColor(i : Int, j : Int) : Vector3
     {
-        // Combine the two ints into a seed.
-        val seed = i * 73856093 xor j * 19349663
+        val seed = i * 73856093 xor j * 199663 + MainActivity.colorSeed
         val random = java.util.Random(seed.toLong())
 
-        // Generate RGB components between 0.0 and 1.0.
-        val r = random.nextFloat()
-        val g = random.nextFloat()
-        val b = random.nextFloat()
+        // Generate hue (0-1), fixed high saturation & brightness
+        val h = random.nextFloat()
+        val s = 0.9f  // High saturation
+        val v = 0.9f  // High brightness
 
-        return Vector3(r, g, b)
+        // Convert HSV to RGB (hue in [0,1], s/v in [0,1])
+        val rgb = hsvToRgb(h, s, v)
+        return Vector3(rgb[0], rgb[1], rgb[2])
+    }
+
+    // Helper: HSV to RGB conversion
+    fun hsvToRgb(h : Float, s : Float, v : Float) : FloatArray
+    {
+        val i = (h * 6).toInt()
+        val f = h * 6 - i
+        val p = v * (1 - s)
+        val q = v * (1 - f * s)
+        val t = v * (1 - (1 - f) * s)
+
+        return when (i % 6)
+        {
+            0 -> floatArrayOf(v, t, p)
+            1 -> floatArrayOf(q, v, p)
+            2 -> floatArrayOf(p, v, t)
+            3 -> floatArrayOf(p, q, v)
+            4 -> floatArrayOf(t, p, v)
+            5 -> floatArrayOf(v, p, q)
+            else -> floatArrayOf(0f, 0f, 0f)
+        }
     }
 
     fun flattenToAnimationData(frame : Int, vertices : List<Vector3>)
@@ -313,7 +363,8 @@ class FlatSkeleton(renderer : SingleSkeletonRenderer) : GLObject(
                 packedColorData[offset + i * 3 + 1] = colorsList[i].y
                 packedColorData[offset + i * 3 + 2] = colorsList[i].z
             }
-        } catch (e : RuntimeException)
+        }
+        catch (e : RuntimeException)
         {
             Log.e("OpenGL", "flattenToAnimationData: $offset")
             throw e

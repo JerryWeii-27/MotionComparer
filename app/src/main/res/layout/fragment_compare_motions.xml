@@ -82,4 +82,14 @@
         android:text="Video 2"
         app:layout_constraintEnd_toEndOf="@+id/buttonPickFirstVideo"
         app:layout_constraintTop_toBottomOf="@+id/buttonPickFirstVideo" />
+
+    <Button
+        android:id="@+id/buttonRefresh"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:text="Refresh"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/glSurfaceView" />
 </androidx.constraintlayout.widget.ConstraintLayout>

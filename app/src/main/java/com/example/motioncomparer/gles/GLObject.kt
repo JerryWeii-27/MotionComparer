@@ -6,7 +6,6 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 open class GLObject(
-    val renderer : SingleSkeletonRenderer,
     val vertexShaderResID : Int,
     val fragmentShaderResID : Int,
     val objectDrawMode : Int

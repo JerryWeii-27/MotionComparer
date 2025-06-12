@@ -2,7 +2,6 @@ package com.example.motioncomparer.fragment
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
-import android.content.Context
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
@@ -14,17 +13,27 @@ import android.widget.EditText
 import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.motioncomparer.MainActivity
 import com.example.motioncomparer.R
+import com.example.motioncomparer.gles.DualSkeletonRenderer
+import com.example.motioncomparer.gles.FlatSkeleton
 
-class CompareMotionsFragment : Fragment(R.layout.fragment_compare_motions)
+class CompareMotionsFragment(
+    val mainActivity : MainActivity
+) : Fragment(R.layout.fragment_compare_motions)
 {
     private lateinit var ibPrevFrame : ImageButton
     private lateinit var ibNextFrame : ImageButton
     private lateinit var glSurfaceView : GLSurfaceView
     private lateinit var etFrameStep : EditText
+    private lateinit var buttonRefresh : Button
 
-    lateinit var analyzedExemplarVideo : AnalyzedVideo
-    lateinit var analyzedYourVideo : AnalyzedVideo
+    val videoType = 2
+
+    lateinit var analyzedExemplarVideo : SwitchVideoButton
+    lateinit var analyzedYourVideo : SwitchVideoButton
+
+    lateinit var skeletonRenderer : DualSkeletonRenderer
 
     private var frameStep : Int = 0
 
@@ -45,17 +54,22 @@ class CompareMotionsFragment : Fragment(R.layout.fragment_compare_motions)
         glSurfaceView = view.findViewById(R.id.glSurfaceView)
         etFrameStep = view.findViewById(R.id.etFrameStep)
 
-        analyzedExemplarVideo = AnalyzedVideo(
+        buttonRefresh = view.findViewById(R.id.buttonRefresh)
+
+        analyzedExemplarVideo = SwitchVideoButton(
             view.findViewById(R.id.buttonPickFirstVideo),
             ContextCompat.getColor(requireContext(), R.color.green),
-            ContextCompat.getColor(requireContext(), R.color.gray)
+            ContextCompat.getColor(requireContext(), R.color.gray),
         )
 
-        analyzedYourVideo = AnalyzedVideo(
+        analyzedYourVideo = SwitchVideoButton(
             view.findViewById(R.id.buttonPickSecondVideo),
             ContextCompat.getColor(requireContext(), R.color.orange),
-            ContextCompat.getColor(requireContext(), R.color.gray)
+            ContextCompat.getColor(requireContext(), R.color.gray),
         )
+
+        buttonRefresh.setOnClickListener {
+        }
 
         ibPrevFrame.setOnClickListener {
 
@@ -64,6 +78,12 @@ class CompareMotionsFragment : Fragment(R.layout.fragment_compare_motions)
         ibNextFrame.setOnClickListener {
 
         }
+
+        skeletonRenderer = DualSkeletonRenderer(requireContext(), this)
+        glSurfaceView.setRenderer(skeletonRenderer)
+
+
+        Log.i("CompareMotionsFragment", "onViewCreated: Created.")
     }
 
     fun updateFrame()
@@ -71,12 +91,13 @@ class CompareMotionsFragment : Fragment(R.layout.fragment_compare_motions)
         frameStep = etFrameStep.text.toString().toIntOrNull() ?: frameStep
     }
 
-    class AnalyzedVideo(
+    class SwitchVideoButton(
         val pickVideoButton : Button,
         val enableColor : Int,
-        val disableColor : Int
+        val disableColor : Int,
     )
     {
+        var flatSkeleton : FlatSkeleton? = null
         var enabled = false
         var centerX = 0
         var centerY = 0

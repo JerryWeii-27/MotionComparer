@@ -2,7 +2,7 @@ package com.example.motioncomparer
 
 import android.content.Context
 import android.util.Log
-import com.example.motioncomparer.gles.SingleSkeletonRenderer
+import com.example.motioncomparer.gles.SkeletonRenderer
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -41,7 +41,7 @@ class MPHelper
             return null
         }
 
-        fun processResultBundle2D(resultBundle : ResultBundle, singleSkeletonRenderer : SingleSkeletonRenderer)
+        fun processResultBundle2D(resultBundle : ResultBundle, skeletonRenderer : SkeletonRenderer)
         {
             Log.i("OpenGLThread", "OpenGL running on thread: ${Thread.currentThread().id}")
             // Go through every frame in result bundle.
@@ -50,7 +50,7 @@ class MPHelper
             // - Data of that frame saved to a mutableList
             // - List added to floatArray
             val resultListSize = resultBundle.resultsList.size
-            singleSkeletonRenderer.newFlatSkeleton(resultListSize)
+            skeletonRenderer.newFlatSkeleton(resultListSize)
 
             Log.i("OpenGL", "processResultBundle: $resultListSize")
 
@@ -61,11 +61,11 @@ class MPHelper
 
                 val jointsVec3Arr = MPHelper.camSpaceLandmarksToVec3Arr(landmarksList)
 
-                singleSkeletonRenderer.flatSkeleton.updateJointsForSingleFrame(i, jointsVec3Arr)
+                skeletonRenderer.flatSkeleton.updateJointsForSingleFrame(i, jointsVec3Arr)
             }
 
-            singleSkeletonRenderer.flatSkeleton.bindVBO()
-            singleSkeletonRenderer.flatSkeleton.allFramesAdded = true
+            skeletonRenderer.flatSkeleton.bindVBO()
+            skeletonRenderer.flatSkeleton.allFramesAdded = true
 
             // Returns the index of the flatSkeleton in glObject list.
         }

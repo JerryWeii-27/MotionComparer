@@ -13,4 +13,11 @@
         <item>pose_landmarker_full.task</item>
         <item>pose_landmarker_heavy.task</item>
     </string-array>
+
+    <string-array name="render_order">
+        <item>Default</item>
+        <item>Vid 1 in front</item>
+        <item>Vid 2 in front</item>
+    </string-array>
+
 </resources>

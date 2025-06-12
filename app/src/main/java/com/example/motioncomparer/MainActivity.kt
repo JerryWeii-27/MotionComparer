@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import com.example.motioncomparer.fragment.AppSettingsFragment
 import com.example.motioncomparer.fragment.CompareMotionsFragment
 import com.example.motioncomparer.fragment.VideoAnalysisFragment
+import com.example.motioncomparer.gles.FlatSkeleton
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity()
@@ -23,20 +24,37 @@ class MainActivity : AppCompatActivity()
         var glSurfaceViewWidth = 0
         var glSurfaceViewHeight = 0
 
-        var forceSameAspectRatio : Boolean = false
+        var forceSameAspectRatio : Boolean = true
+
+        var exemplarSkeleton : FlatSkeleton? = null
+        var yourSkeleton : FlatSkeleton? = null
+
+        var colorSeed : Int = 0
+
+        var renderOrder : String = "Default"
+
+        var sameColor : Boolean = true
+
+        var currentVideoType : Int = 0
     }
 
-    val exemplarVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()
-    val yourVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment()
-    val compareMotionsFragment : CompareMotionsFragment = CompareMotionsFragment()
+    // Video Type 0: exemplar.
+    // Video Type 1: your.
+    val exemplarVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment(this, 0)
+    val yourVideoAnalysisFragment : VideoAnalysisFragment = VideoAnalysisFragment(this, 1)
     val appSettingsFragment : AppSettingsFragment = AppSettingsFragment()
 
     private val handler = Handler(Looper.getMainLooper())
-    private val logRunnable = object : Runnable {
-        override fun run() {
+    private val logRunnable = object : Runnable
+    {
+        override fun run()
+        {
             // Log all fragments' visibility status
-            Log.i("FragmentDebug", "exemplarVideoAnalysisFragment visibility: ${exemplarVideoAnalysisFragment.isVisible}." +
-                    "\nyourVideoAnalysisFragment visibility: ${yourVideoAnalysisFragment.isVisible}.")
+            Log.i(
+                "FragmentDebug",
+                "exemplarVideoAnalysisFragment visibility: ${exemplarVideoAnalysisFragment.isVisible}." +
+                        "\nyourVideoAnalysisFragment visibility: ${yourVideoAnalysisFragment.isVisible}."
+            )
 
             // Repeat the task after a delay (e.g., 5 seconds)
             handler.postDelayed(this, 10000)
@@ -61,10 +79,8 @@ class MainActivity : AppCompatActivity()
             supportFragmentManager.beginTransaction()
                 .add(R.id.fcFragmentContainer, exemplarVideoAnalysisFragment)
                 .add(R.id.fcFragmentContainer, yourVideoAnalysisFragment)
-                .add(R.id.fcFragmentContainer, compareMotionsFragment)
                 .add(R.id.fcFragmentContainer, appSettingsFragment)
                 .hide(yourVideoAnalysisFragment)
-                .hide(compareMotionsFragment)
                 .hide(appSettingsFragment)
                 .commit()
 
@@ -74,10 +90,9 @@ class MainActivity : AppCompatActivity()
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId)
             {
-                R.id.navExemplar -> switchFragment(exemplarVideoAnalysisFragment)
-                R.id.navYou -> switchFragment(yourVideoAnalysisFragment)
-                R.id.navCompare -> switchFragment(compareMotionsFragment)
-                R.id.navSettings -> switchFragment(appSettingsFragment)
+                R.id.navExemplar -> switchFragment(exemplarVideoAnalysisFragment, 0)
+                R.id.navYou -> switchFragment(yourVideoAnalysisFragment, 1)
+                R.id.navSettings -> switchFragment(appSettingsFragment, 3)
             }
 
 //            tvTitle.text = item.title
@@ -85,9 +100,23 @@ class MainActivity : AppCompatActivity()
         }
     }
 
-    private fun switchFragment(fragment : Fragment)
+    private fun switchFragment(fragment : Fragment, fragmentID : Int)
     {
         val fragmentTransaction = supportFragmentManager.beginTransaction()
+
+        currentVideoType = fragmentID
+
+        if(fragmentID == 0)
+        {
+            yourSkeleton?.currentAlpha = 0.6f
+            exemplarSkeleton?.currentAlpha = 0.6f
+        }
+        if(fragmentID == 1)
+        {
+            exemplarSkeleton?.currentAlpha = 0.6f
+            yourSkeleton?.currentAlpha = 0.6f
+        }
+
 
         supportFragmentManager.fragments.forEach {
             fragmentTransaction.hide(it)

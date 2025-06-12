@@ -1,5 +1,7 @@
 package com.example.motioncomparer.fragment
 
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.graphics.PixelFormat
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -12,16 +14,24 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.motioncomparer.MainActivity
 import com.example.motioncomparer.R
 import com.example.motioncomparer.VideoAnalysis
-import com.example.motioncomparer.gles.SingleSkeletonRenderer
+import com.example.motioncomparer.gles.FlatSkeleton
+import com.example.motioncomparer.gles.SkeletonRenderer
 
 
-class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
+class VideoAnalysisFragment(val mainActivity : MainActivity, val videoType : Int) :
+    Fragment(R.layout.fragment_video_analysis)
 {
     lateinit var videoAnalysis : VideoAnalysis
+    var compareMotionsFragment : CompareMotionsFragment? = null
+
+    lateinit var exemplarVideoButton : SwitchVideoButton
+    lateinit var yourVideoButton : SwitchVideoButton
 
     override fun onCreateView(
         inflater : LayoutInflater,
@@ -45,6 +55,7 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
             etFrameStep = etFrameStep,
             pbDetectionProgress = pbDetectionProgress,
             glSurfaceView = glSurfaceView,
+            videoType
         )
 
         setUpUI(view)
@@ -58,11 +69,10 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
             insets
         }
 
-
         ivCurrentFrame.isEnabled = true
         ivCurrentFrame.visibility = View.VISIBLE
 
-        videoAnalysis.singleSkeletonRenderer = SingleSkeletonRenderer(requireContext(), this)
+        videoAnalysis.skeletonRenderer = SkeletonRenderer(requireContext(), this)
 
         buttonNextFrame.setOnClickListener {
             videoAnalysis.updateFrame(1)
@@ -83,12 +93,68 @@ class VideoAnalysisFragment : Fragment(R.layout.fragment_video_analysis)
         glSurfaceView.setZOrderOnTop(true)
 
 
-        glSurfaceView.setRenderer(videoAnalysis.singleSkeletonRenderer)
+        glSurfaceView.setRenderer(videoAnalysis.skeletonRenderer)
 
 //        @SuppressLint("ClickableViewAccessibility")
 //        glSurfaceView.setOnTouchListener { _, event ->
 //            videoAnalysis.glRenderer2D.onTouchEvent(event)
 //        }
+
+        exemplarVideoButton =
+            SwitchVideoButton(
+                view.findViewById(R.id.buttonPickFirstVideo),
+                ContextCompat.getColor(requireContext(), R.color.green),
+                ContextCompat.getColor(requireContext(), R.color.gray),
+            )
+
+        yourVideoButton =
+            SwitchVideoButton(
+                view.findViewById(R.id.buttonPickSecondVideo),
+                ContextCompat.getColor(requireContext(), R.color.orange),
+                ContextCompat.getColor(requireContext(), R.color.gray),
+            )
+    }
+
+    class SwitchVideoButton(
+        val pickVideoButton : Button,
+        val enableColor : Int,
+        val disableColor : Int,
+    )
+    {
+        var flatSkeleton : FlatSkeleton? = null
+        var enabled = false
+        var centerX = 0
+        var centerY = 0
+
+        init
+        {
+            pickVideoButton.setBackgroundColor(disableColor)
+            pickVideoButton.setOnClickListener { onClickPickButton() }
+        }
+
+        fun onClickPickButton()
+        {
+            if (enabled)
+            {
+                startButtonColorAnimation(enableColor, disableColor)
+            }
+            else
+            {
+                startButtonColorAnimation(disableColor, enableColor)
+            }
+            enabled = !enabled
+        }
+
+        fun startButtonColorAnimation(startColor : Int, endColor : Int)
+        {
+            val colorAnimation : ValueAnimator =
+                ValueAnimator.ofObject(ArgbEvaluator(), startColor, endColor)
+            colorAnimation.setDuration(350);
+            colorAnimation.addUpdateListener { updatedAnimation ->
+                pickVideoButton.setBackgroundColor(updatedAnimation.animatedValue as Int)
+            }
+            colorAnimation.start()
+        }
     }
 
     // All view bindings here.

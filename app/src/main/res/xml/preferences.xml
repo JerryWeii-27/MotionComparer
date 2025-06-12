@@ -15,7 +15,7 @@
 
         <SeekBarPreference
             android:layout="@layout/preference_seekbar_custom"
-            android:max="60"
+            android:max="150"
             app:defaultValue="50"
             app:key="interval"
             app:min="1"
@@ -34,10 +34,36 @@
 
 
     <PreferenceCategory android:title="Settings (Don't Require Restart)">
+<!--        <SwitchPreferenceCompat-->
+<!--            app:defaultValue="true"-->
+<!--            app:key="forceSameAspect"-->
+<!--            app:summary="When turned on, two videos must have the same aspect ratio."-->
+<!--            app:title="Force same aspect ratio" />-->
+
+        <EditTextPreference
+            app:defaultValue="0"
+            app:dialogMessage="This affects bone colors."
+            app:dialogTitle="Enter a integer seed"
+            app:key="colorSeed"
+            app:summary="Click to change."
+            app:title="Bone Color Seed" />
+
         <SwitchPreferenceCompat
-            app:defaultValue="false"
-            app:key="forceSameAspect"
-            app:summary="When turned on, two videos must have the same aspect ratio."
-            app:title="Force same aspect ratio" />
+            app:defaultValue="true"
+            app:key="sameColor"
+            app:summary="When turned on, two skeletons will have same color scheme."
+            app:title="Use same color scheme" />
+
+        <ListPreference
+            app:defaultValue="Default"
+            app:dialogTitle="Select render order"
+            app:entries="@array/render_order"
+            app:entryValues="@array/render_order"
+            app:key="renderOrder"
+            app:summary="Click to choose."
+            app:title="Render order of bones." />
+
+
+
     </PreferenceCategory>
 </PreferenceScreen>
