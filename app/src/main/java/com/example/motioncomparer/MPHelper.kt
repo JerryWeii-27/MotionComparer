@@ -27,8 +27,8 @@ class MPHelper
 
                 val optionsBuilder =
                     PoseLandmarker.PoseLandmarkerOptions.builder().setBaseOptions(baseOptions)
-                        .setMinPoseDetectionConfidence(0.5f).setMinTrackingConfidence(0.5f)
-                        .setMinPosePresenceConfidence(0.5f).setRunningMode(RunningMode.VIDEO)
+                        .setMinPoseDetectionConfidence(0.1f).setMinTrackingConfidence(0.1f)
+                        .setMinPosePresenceConfidence(0.1f).setRunningMode(RunningMode.VIDEO)
                         .setNumPoses(1)
 
                 val options = optionsBuilder.build()

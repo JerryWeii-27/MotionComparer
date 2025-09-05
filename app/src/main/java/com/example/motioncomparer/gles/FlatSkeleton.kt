@@ -135,7 +135,7 @@ class FlatSkeleton() : GLObject(
     {
         Log.i(
             "OpenGL",
-            "FlatSkeleton updateVBOs: $frameInAnimationData out of $totalFrames frames."
+            "FlatSkeleton updateVBOs: ${frameInAnimationData + 1} out of $totalFrames frames."
         )
         require(frameInAnimationData in 0 until totalFrames)
 

@@ -85,7 +85,7 @@ class VideoAnalysis(
         }
         else if (newFrame < 0)
         {
-            (totalFrames / sampleIntervalFrames) * sampleIntervalFrames
+            (frameBitmapArray.size - 1) * sampleIntervalFrames
         }
         else
         {
@@ -107,14 +107,13 @@ class VideoAnalysis(
         skeletonRenderer.currentFrame = currentFrame / sampleIntervalFrames
 
 
-        var bitmapIndex = currentFrame / sampleIntervalFrames
+        val bitmapIndex = currentFrame / sampleIntervalFrames
         if (bitmapIndex >= frameBitmapArray.size)
         {
             Log.e(
                 "VideoPlayer",
                 "updateFrame: Bitmap index $bitmapIndex out of bounds for array of size ${frameBitmapArray.size}."
             )
-            bitmapIndex = frameBitmapArray.size - 1;
         }
         Log.i("VideoPlayer", "Bitmap index: $bitmapIndex")
         ivCurrentFrame.setImageBitmap(frameBitmapArray[bitmapIndex])
@@ -207,6 +206,11 @@ class VideoAnalysis(
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)
                 ?.toInt()
 
+        sampleIntervalFrames = MainActivity.sampleIntervalFrames
+        Log.i(
+            "MPDetectionProgress",
+            "Video length: $videoLengthMS ms, total frames: $newTotalFrames, sample interval: $sampleIntervalFrames frames."
+        )
         if (videoLengthMS != null && newTotalFrames != null)
         {
             totalFrames = newTotalFrames
@@ -328,7 +332,7 @@ class VideoAnalysis(
             return null
         }
 
-        val numberOfFramesToDetect = videoLengthMS / (sampleIntervalFrames * frameDurationMS!!)
+        val numberOfFramesToDetect = totalFrames / sampleIntervalFrames
         val resultList = mutableListOf<PoseLandmarkerResult>()
 
         var currentProgressPercent : Int = 0
@@ -337,7 +341,10 @@ class VideoAnalysis(
         {
             val timeStampMs = i * sampleIntervalFrames * frameDurationMS!!
 //            Log.i("MPDetectionProgress", "Detecting $timeStampMs out of $videoLengthMS.")
-            Log.i("MPDetectionProgress", "Detecting frame ${i} out of $numberOfFramesToDetect at $timeStampMs ms out of $videoLengthMS ms.")
+            Log.i(
+                "MPDetectionProgress",
+                "Detecting frame ${i + 1} out of ${numberOfFramesToDetect + 1} at $timeStampMs ms out of $videoLengthMS ms."
+            )
 
             retriever.getFrameAtTime(timeStampMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST)
                 ?.let { frame ->
@@ -398,7 +405,7 @@ class VideoAnalysis(
         fragmentActivity.runOnUiThread {
             ivCurrentFrame.setImageBitmap(frameBitmapArray[0])
         }
-
+        Log.i("MPDetectionProgress", "resultList size: ${resultList.size}.")
         return MPHelper.ResultBundle(
             resultList,
             sampleIntervalFrames * frameDurationMS!!,

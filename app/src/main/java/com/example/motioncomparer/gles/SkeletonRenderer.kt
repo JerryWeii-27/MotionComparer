@@ -94,20 +94,20 @@ class SkeletonRenderer(private val context : Context, val fragment : VideoAnalys
 
     fun drawFlatSkeleton()
     {
-        Log.i(
-            "SkeletonRenderer",
-            "---------------------------------\ndrawFlatSkeleton: Drawing skeleton.\n"
-        )
-
-        if (MainActivity.exemplarSkeleton == null)
-        {
-            Log.e("SecondSkeleton", "drawFlatSkeleton: MainActivity.exemplarSkeleton == null")
-        }
-
-        if (MainActivity.yourSkeleton == null)
-        {
-            Log.e("SecondSkeleton", "MainActivity.yourSkeleton == null")
-        }
+//        Log.i(
+//            "SkeletonRenderer",
+//            "---------------------------------\ndrawFlatSkeleton: Drawing skeleton.\n"
+//        )
+//
+//        if (MainActivity.exemplarSkeleton == null)
+//        {
+//            Log.e("SecondSkeleton", "drawFlatSkeleton: MainActivity.exemplarSkeleton == null")
+//        }
+//
+//        if (MainActivity.yourSkeleton == null)
+//        {
+//            Log.e("SecondSkeleton", "MainActivity.yourSkeleton == null")
+//        }
         flatSkeleton.currentFrame = currentFrame
 
         if (MainActivity.renderOrder == "Default")
