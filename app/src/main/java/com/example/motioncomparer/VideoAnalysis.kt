@@ -107,7 +107,16 @@ class VideoAnalysis(
         skeletonRenderer.currentFrame = currentFrame / sampleIntervalFrames
 
 
-        val bitmapIndex = currentFrame / sampleIntervalFrames
+        var bitmapIndex = currentFrame / sampleIntervalFrames
+        if (bitmapIndex >= frameBitmapArray.size)
+        {
+            Log.e(
+                "VideoPlayer",
+                "updateFrame: Bitmap index $bitmapIndex out of bounds for array of size ${frameBitmapArray.size}."
+            )
+            bitmapIndex = frameBitmapArray.size - 1;
+        }
+        Log.i("VideoPlayer", "Bitmap index: $bitmapIndex")
         ivCurrentFrame.setImageBitmap(frameBitmapArray[bitmapIndex])
     }
 
@@ -327,7 +336,8 @@ class VideoAnalysis(
         for (i in 0..numberOfFramesToDetect)
         {
             val timeStampMs = i * sampleIntervalFrames * frameDurationMS!!
-            Log.i("MPDetectionProgress", "Detecting $timeStampMs out of $videoLengthMS.")
+//            Log.i("MPDetectionProgress", "Detecting $timeStampMs out of $videoLengthMS.")
+            Log.i("MPDetectionProgress", "Detecting frame ${i} out of $numberOfFramesToDetect at $timeStampMs ms out of $videoLengthMS ms.")
 
             retriever.getFrameAtTime(timeStampMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST)
                 ?.let { frame ->
